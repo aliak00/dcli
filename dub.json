@@ -1,0 +1,24 @@
+{
+	"name": "dcli",
+	"authors": [
+		"Ali Akhtarzada"
+	],
+	"dependencies": {
+		"ddash": "*"
+	},
+	"mainSourceFile": "source/app.d",
+	"targetType": "executable",
+	"targetPath": "bin",
+	"description": "A library to help with building CLIs in D",
+	"copyright": "Copyright © 2018, Ali Akhtarzada",
+	"license": "MIT",
+	"subPackages": [
+		{
+			"name": "programoptions",
+			"description": "Specify and parse command line options",
+			"sourcePaths": ["source/dcli/programoptions"],
+			"dependencies": { "ddash": "*" },
+			"targetPath": "bin"
+		}
+	]
+}
