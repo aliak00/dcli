@@ -20,5 +20,14 @@
 			"dependencies": { "ddash": "*" },
 			"targetPath": "bin"
 		}
+	],
+	"subPackages": [
+		{
+			"name": "programcommands",
+			"description": "Specify and parse command line commands",
+			"sourcePaths": ["source/dcli/programcommands"],
+			"dependencies": { "ddash": "*", "dcli:programoptions": "*" },
+			"targetPath": "bin"
+		}
 	]
 }

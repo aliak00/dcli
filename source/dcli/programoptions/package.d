@@ -1,11 +1,19 @@
 module dcli.programoptions;
 
-// version = dcli_programoptions_debug;
+version = dcli_programoptions_debug;
 
-private void debug_print(Args...)(Args args) @trusted @nogc {
+private void debug_print(Args...)(Args args, int line = __LINE__, string file = __FILE__) @trusted @nogc {
     version(dcli_programoptions_debug) {
-        import std.stdio: writeln;
-        debug writeln(args);
+        debug {
+            import std.stdio: writeln;
+            import std.path: baseName, stripExtension, dirName, pathSplitter;
+            import std.range: array;
+            auto stripped = baseName(stripExtension(file));
+            if (stripped == "package") {
+                stripped = pathSplitter(dirName(file)).array[$ - 1] ~ "/" ~ stripped;
+            }
+            writeln("[", stripped, ":", line, "] : ", args);
+        }
     }
 }
 
@@ -202,6 +210,11 @@ class DuplicateProgramArgument: ProgramOptionException {
     this(string msg, string file = __FILE__, size_t line = __LINE__) {
         super(msg, file, line);
     }
+}
+
+template isProgramOptions(T) {
+    import std.traits: isInstanceOf;
+    enum isProgramOptions = isInstanceOf!(ProgramOptions, T);
 }
 
 struct ProgramOptions(options...) {
@@ -412,10 +425,13 @@ struct ProgramOptions(options...) {
             encounteredOptions[opt.VarName] = false;
         }
 
+        // Parse the first arg and executable path and see if we should skip first arg
+        import ddash.range: first, last, frontOr, withFront;
+        import ddash.algorithm: flatMap;
+        import std.file: thisExePath;
+
         int index = 0;
 
-        // Parse the first arg and executable path and see if we should skip first arg
-        import ddash.range: first, last, withFront;
         args.first.map!(a => a.split("/").last).withFront!((a) {
             import std.file: thisExePath;
             thisExePath.split("/").last.withFront!((b) {
@@ -451,7 +467,7 @@ struct ProgramOptions(options...) {
                 debug_print("no option found") ;
                 if (shortOption) {
                     index += 1;
-                    debug continue;
+                    continue;
                 }
                 // Else it was a -- so we slice those out and we're done
                 debug_print("done. storing rest arguments: ", args[index + 1 .. $]) ;
@@ -470,9 +486,9 @@ struct ProgramOptions(options...) {
                     debug_print("parsing short name") ;
                     if (rest.length == 1) {
                         debug_print("one letter option only") ;
-                        debug options = [rest.to!string];
+                        options = [rest.to!string];
                         value = nextValue();
-                        debug return 2;
+                        return 2;
                     }
 
                     // If we have more than one char then it can be either of the forms
@@ -491,11 +507,11 @@ struct ProgramOptions(options...) {
                     debug_print("bundleableArgs=", bundleableArgs) ;
 
                     // Greater than one, and all of them are bundleable, and no value - case a
-                    debug if (bundleableArgs.length == rest.length) {
+                    if (bundleableArgs.length == rest.length) {
                         debug_print("case a") ;
                         options = bundleableArgs.map!(to!string).array;
                         value = nextValue();
-                        debug return 2;
+                        return 2;
                     }
 
                     auto shortNames = rest.until!(a => !isShortName(a.to!string)).array;
@@ -503,18 +519,18 @@ struct ProgramOptions(options...) {
                     debug_print("shortNames=", shortNames) ;
 
                     // Greater than one, but only one valid short name - case b and c
-                    debug if (shortNames.length == 1) {
+                    if (shortNames.length == 1) {
                         options = shortNames.map!(to!string).array;
                         auto parts = rest.findSplit("=");
                         debug_print("got parts=", parts) ;
                         if (parts[0].length == 1 && parts[1] == "=") { // case b
                             debug_print("case b") ;
-                            debug value = parts[2];
+                            value = parts[2];
                         } else {
-                            debug debug_print("case c") ;
+                            debug_print("case c") ;
                             value = parts[0].drop(1);
                         }
-                        debug return 1;
+                        return 1;
                     }
 
                     // We have more than one short name, so now we have bundleables
@@ -534,17 +550,17 @@ struct ProgramOptions(options...) {
                     debug_print("got parts=", parts) ;
                     if (parts[0].length == shortNames.length && parts[1] == "=") { // case d
                         debug_print("case d") ;
-                        debug value = parts[2];
+                        value = parts[2];
                     } else { // case e
-                        debug debug_print("case e") ;
+                        debug_print("case e") ;
                         value = parts[0].drop(shortNames.length);
                     }
-                    debug return 1;
+                    return 1;
                 } else {
                     debug_print("parsing long name") ;
 
                     // We have a long name, and two cases:
-                    debug //
+                    //
                     // a) name
                     // b) name=V
 
@@ -552,9 +568,9 @@ struct ProgramOptions(options...) {
                     debug_print("got parts=", parts) ;
                     if (parts[1] != "=") { // case a
                         debug_print("case a") ;
-                        debug options = [parts[0]];
+                        options = [parts[0]];
                         value = nextValue();
-                        debug return 2;
+                        return 2;
                     }
 
                     // case b
@@ -765,9 +781,10 @@ version (unittest) {
 }
 
 unittest {
-    import std.stdio: writeln;
+    import std.file: thisExePath;
 
     auto args = [
+        thisExePath,
         "program_name",
         "--opt1", "value1",
         "-b", "1",
@@ -854,12 +871,7 @@ unittest {
         return false;
     };
 
-    try {
-        assert(options.parse(args) == ["extra"]);
-    } catch (Exception ex) {
-        writeln("Exception PO: ", ex.msg);
-    }
-
+    assert(options.parse(args) == ["extra"]);
     assert(unknownArgs == ["program_name", "--unknown", "ha"]);
 
     assert(options.opt1 == "value1");
