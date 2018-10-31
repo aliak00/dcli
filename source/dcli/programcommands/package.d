@@ -37,35 +37,41 @@ private template isProgramCommands(T) {
     enum isProgramCommands = isInstanceOf!(ProgramCommands, T);
 }
 
-struct Command(string name, T, string desc) if (isProgramOptions!T || isProgramCommands!T || isVoid!T) {
+/*
+    These two functions are here so because both ProgramCommands and ProgramOptions adhere to an interface that
+    has these two functions. And when a Command is created that is only a command with no inner options or
+    commands, then it resolves to type Void. So these function "fake" a similar interface for Void.
+*/
+private void parse(Void, const string[]) {}
+private string toString(Void) { return ""; }
+
+public struct Command(string name, T, string desc) if (isProgramOptions!T || isProgramCommands!T || isVoid!T) {
     alias Name = name;
     alias Desc = desc;
     alias Options = T;
     private bool active = false;
-    T opCast(T: bool)() {
+    public T opCast(T: bool)() {
         return active;
     }
-    static if (!isVoid!T) {
-        T options;
-        alias options this;
-    }
+    public T options;
+    alias options this;
 }
 
-template Command(string name, string desc) {
+public template Command(string name, string desc) {
     alias Command = Command!(name, Void, desc);
 }
 
-template Command(string name, T = Void) {
+public template Command(string name, T = Void) {
     alias Command = Command!(name, T, null);
 }
 
-struct ProgramCommands(Commands...) if (Commands.length > 0) {
+public struct ProgramCommands(Commands...) if (Commands.length > 0) {
     import std.conv: to;
 
     static if (isProgramOptions!(Commands[0])) {
         // We have a global set of options if the first argument is a ProgramOptions type.
         enum StartIndex = 1;
-        Commands[0] options;
+        public Commands[0] options;
     } else {
         enum StartIndex = 0;
     }
@@ -76,7 +82,7 @@ struct ProgramCommands(Commands...) if (Commands.length > 0) {
             isCommand!(Commands[I]),
             "Expected type Command. Found " ~ Commands[I].stringof ~ " for arg " ~ I.to!string
         );
-        mixin("Commands[I] " ~ Commands[I].Name ~ ";");
+        mixin("public Commands[I] " ~ Commands[I].Name ~ ";");
     }
 
     // Get all available commands
@@ -121,7 +127,7 @@ struct ProgramCommands(Commands...) if (Commands.length > 0) {
         return allCommands.canFind(cmd);
     }
 
-    alias PluckCommandResult = Tuple!(const(string)[], string, const(string)[]);
+    private alias PluckCommandResult = Tuple!(const(string)[], string, const(string)[]);
     private PluckCommandResult pluckCommand(const string[] args) {
         alias pred = (a) => this.isValidCommand(a);
         return args.indexWhere!pred
@@ -135,7 +141,7 @@ struct ProgramCommands(Commands...) if (Commands.length > 0) {
             .frontOr(PluckCommandResult.init);
     }
 
-    void parse(const string[] args) {
+    public void parse(const string[] args) {
         auto data = pluckCommand(args);
 
         debug_print("plucked => ", data);
@@ -150,7 +156,7 @@ struct ProgramCommands(Commands...) if (Commands.length > 0) {
         }
     }
 
-    string helpText() const {
+    public string helpText() const {
         string ret;
         static if (isProgramOptions!(Commands[0])) {
             ret ~= options.helpText;
@@ -166,7 +172,7 @@ struct ProgramCommands(Commands...) if (Commands.length > 0) {
         return ret;
     }
 
-    string toString() const {
+    public string toString() const {
         import std.conv: to;
         string ret = "{ ";
         static if (isProgramOptions!(Commands[0])) {

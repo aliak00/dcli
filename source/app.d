@@ -21,9 +21,6 @@ void main() {
         ),
         Command!(
             "cmd2",
-            ProgramOptions!(
-                Option!("opt1", string).shortName!"c".description!"desc",
-            ),
             "desc",
         ),
         Command!(
@@ -66,5 +63,5 @@ void main() {
         writeln("cmd3");
     }
 
-    commands.writeln;
+    commands.helpText.writeln;
 }
