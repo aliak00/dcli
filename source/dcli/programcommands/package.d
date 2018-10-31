@@ -40,6 +40,7 @@ private template isProgramCommands(T) {
 struct Command(string name, T, string desc) if (isProgramOptions!T || isProgramCommands!T || isVoid!T) {
     alias Name = name;
     alias Desc = desc;
+    alias Options = T;
     private bool active = false;
     T opCast(T: bool)() {
         return active;
@@ -172,7 +173,16 @@ struct ProgramCommands(Commands...) if (Commands.length > 0) {
             ret ~= "options: " ~ options.toString ~ ", ";
         }
         static foreach (I; StartIndex .. Commands.length) {
-            ret ~= Commands[I].Name ~ ": " ~ mixin(Commands[I].Name ~ ".toString");
+            ret ~= Commands[I].Name ~ ": { ";
+            ret ~= "active: " ~ mixin(Commands[I].Name ~ ".active ? \"true\" : \"false\"");
+            ret ~= ", ";
+            static if (isProgramOptions!(Commands[I].Options)) {
+                ret ~= "options";
+            } else {
+                ret ~= "commands";
+            }
+            ret ~= ": " ~ mixin(Commands[I].Name ~ ".toString");
+            ret ~= " }";
             static if (I < Commands.length - 1) {
                 ret ~= ", ";
             }

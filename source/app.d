@@ -45,7 +45,7 @@ void main() {
     )();
 
     commands.parse([
-        "-a",
+        "-ayo",
         "cmd3",
         "-d",
         "hi",
@@ -66,5 +66,5 @@ void main() {
         writeln("cmd3");
     }
 
-    commands.cmd3.writeln;
+    commands.writeln;
 }
