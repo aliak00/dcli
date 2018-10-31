@@ -66,5 +66,5 @@ void main() {
         writeln("cmd3");
     }
 
-    commands.helpText.writeln;
+    commands.cmd3.writeln;
 }

@@ -10,7 +10,7 @@ import std.algorithm: map;
 import std.typecons;
 import std.stdio: writeln;
 
-version = dcli_programcommands_debug;
+// version = dcli_programcommands_debug;
 
 private void debug_print(Args...)(Args args, int line = __LINE__, string file = __FILE__) @trusted @nogc {
     version(dcli_programcommands_debug) {

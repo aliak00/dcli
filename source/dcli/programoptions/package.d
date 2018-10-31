@@ -1,6 +1,6 @@
 module dcli.programoptions;
 
-version = dcli_programoptions_debug;
+// version = dcli_programoptions_debug;
 
 private void debug_print(Args...)(Args args, int line = __LINE__, string file = __FILE__) @trusted @nogc {
     version(dcli_programoptions_debug) {
@@ -212,17 +212,23 @@ class DuplicateProgramArgument: ProgramOptionException {
     }
 }
 
+class ExpectedProgramArgument: ProgramOptionException {
+    this(string msg, string file = __FILE__, size_t line = __LINE__) {
+        super(msg, file, line);
+    }
+}
+
 template isProgramOptions(T) {
     import std.traits: isInstanceOf;
     enum isProgramOptions = isInstanceOf!(ProgramOptions, T);
 }
 
-struct ProgramOptions(options...) {
+struct ProgramOptions(Options...) {
 
     import std.typecons: Flag, Tuple, tuple;
     import optional;
 
-    static foreach (I, opt; options) {
+    static foreach (I, opt; Options) {
         mixin("opt.Type " ~ opt.VarName ~ "= opt.DefaultValue;");
     }
 
@@ -349,7 +355,7 @@ struct ProgramOptions(options...) {
     private AssignResult trySet(string name, string value, Flag!"shortName" shortName) {
         import std.conv: ConvException;
         try {
-            static foreach (opt; options) {
+            static foreach (opt; Options) {
                 if (opt.isMatch(name, shortName)) {
                     return tryAssign!(opt)(this, value);
                 }
@@ -364,7 +370,7 @@ struct ProgramOptions(options...) {
 
     private bool isBundleableShortName(string str) {
         import std.typecons: Yes;
-        static foreach (opt; options) {
+        static foreach (opt; Options) {
             if (opt.isMatch(str, Yes.shortName)) {
                 return opt.Bundleable;
             }
@@ -374,7 +380,7 @@ struct ProgramOptions(options...) {
 
     private bool isShortName(string str) {
         import std.typecons: Yes;
-        static foreach (opt; options) {
+        static foreach (opt; Options) {
             if (opt.isMatch(str, Yes.shortName)) {
                 return true;
             }
@@ -392,7 +398,7 @@ struct ProgramOptions(options...) {
         import std.conv: ConvException;
 
         // Parse possible environment vars
-        static foreach (opt; options) {
+        static foreach (opt; Options) {
             static if (opt.EnvironmentVar.length) {{
                 string value;
                 try {
@@ -421,7 +427,7 @@ struct ProgramOptions(options...) {
         import std.string: split;
 
         // Initialize the encounters array
-        static foreach (opt; options) {
+        static foreach (opt; Options) {
             encounteredOptions[opt.VarName] = false;
         }
 
@@ -474,8 +480,14 @@ struct ProgramOptions(options...) {
                 return args[index + 1 .. $].dup;
             }
 
-            import ddash.range: nth, frontOr;
-            alias nextValue = () => args.nth(index + 1).frontOr("");
+            auto nextValue() {
+                import ddash.range: nth;
+                auto next = args.nth(index + 1);
+                if (next.empty) {
+                    throw new ExpectedProgramArgument("Did not find value for arg " ~ args[index]);
+                }
+                return next.front;
+            }
 
             assert(rest.length > 0);
 
@@ -613,9 +625,9 @@ struct ProgramOptions(options...) {
     string toString() const {
         import std.conv: to;
         string ret = "{ ";
-        static foreach (I, opt; options) {
-            ret ~= opt.VarName ~ ": " ~ mixin(opt.VarName ~ ".to!string");
-            static if (I < options.length - 1) {
+        static foreach (I, Opt; Options) {
+            ret ~= Opt.VarName ~ ": " ~ mixin(Opt.VarName ~ ".to!string");
+            static if (I < Options.length - 1) {
                 ret ~= ", ";
             }
         }
@@ -624,7 +636,7 @@ struct ProgramOptions(options...) {
     }
 
     string helpText() const {
-        import std.string: leftJustify;
+        import std.string: leftJustify, stripRight;
         import std.typecons: Tuple;
 
         string ret;
@@ -632,14 +644,14 @@ struct ProgramOptions(options...) {
         // The max lengths will be used to indent the description text
         size_t maxLongNameLength = 0;
         size_t maxEnvVarLength = 0;
-        static foreach (option; options) {
-            static if (option.Description) {
-                if (option.PrimaryLongName.length > maxLongNameLength) {
-                    maxLongNameLength = option.PrimaryLongName.length;
+        static foreach (Opt; Options) {
+            static if (Opt.Description) {
+                if (Opt.PrimaryLongName.length > maxLongNameLength) {
+                    maxLongNameLength = Opt.PrimaryLongName.length;
                 }
-                static if (option.EnvironmentVar.length) {
-                    if (option.EnvironmentVar.length > maxEnvVarLength) {
-                        maxEnvVarLength = option.EnvironmentVar.length;
+                static if (Opt.EnvironmentVar.length) {
+                    if (Opt.EnvironmentVar.length > maxEnvVarLength) {
+                        maxEnvVarLength = Opt.EnvironmentVar.length;
                     }
                 }
             }
@@ -656,55 +668,53 @@ struct ProgramOptions(options...) {
         EnvVarData[] envVarData;
 
         bool hasOptionsSection = false;
-        static foreach (I, option; options) {{
+        static foreach (I, Opt; Options) {{
 
             // This will be used later to write out the Environment Var section
             EnvVarData envVarDatum;
+            envVarDatum.description = Opt.Description;
 
-            // Only ouput stuff if there's a description
-            static if (option.Description.length) {
+            // If we have a long name or short name we can display an "Options" section
+            static if (Opt.PrimaryShortName.length || Opt.PrimaryLongName.length) {
 
-                envVarDatum.description = option.Description;
+                // Set this to null because we will output the description as part of the opttion names
+                envVarDatum.description = null;
 
-                // If we have a long name or short name we can display an "Options" section
-                static if (option.PrimaryShortName.length || option.PrimaryLongName.length) {
-
-                    // Set this to null because we will output the description as part of the option names
-                    envVarDatum.description = null;
-
-                    // Write the Option section header once.
-                    if (!hasOptionsSection) {
-                        ret ~= "Options:";
-                        hasOptionsSection = true;
-                    }
-
-                    ret ~= "\n";
-
-                    string desc = startIndent.spaces;
-                    static if (option.PrimaryShortName.length) {{
-                        auto str = "-" ~ option.PrimaryShortName;
-                        envVarDatum.linkedOption = str;
-                        desc ~= str;
-                    }} else {
-                        desc ~= maxShortNameLength.spaces;
-                    }
-                    desc ~= shortLongIndent.spaces;
-                    static if (option.PrimaryLongName.length) {{
-                        auto str = "--" ~ option.PrimaryLongName;
-                        envVarDatum.linkedOption = str;
-                        desc ~= str.leftJustify(maxLongNameLength, ' ');
-                    }} else {
-                        desc ~= maxLongNameLength.spaces;
-                    }
-                    desc ~= longDescIndent.spaces;
-                    auto indent = startIndent + maxShortNameLength + shortLongIndent + maxLongNameLength + longDescIndent;
-                    ret ~= desc ~ printWithIndent(indent, option.Description);
+                // Write the Option section header once.
+                if (!hasOptionsSection) {
+                    ret ~= "Options:";
+                    hasOptionsSection = true;
                 }
 
-                static if (option.EnvironmentVar.length) {
-                    envVarDatum.name = option.EnvironmentVar;
-                    envVarData ~= envVarDatum;
+                ret ~= "\n";
+
+                string desc = startIndent.spaces;
+                static if (Opt.PrimaryShortName.length) {{
+                    auto str = "-" ~ Opt.PrimaryShortName;
+                    envVarDatum.linkedOption = str;
+                    desc ~= str;
+                }} else {
+                    desc ~= maxShortNameLength.spaces;
                 }
+                desc ~= shortLongIndent.spaces;
+                static if (Opt.PrimaryLongName.length) {{
+                    auto str = "--" ~ Opt.PrimaryLongName;
+                    envVarDatum.linkedOption = str;
+                    desc ~= str.leftJustify(maxLongNameLength, ' ');
+                }} else {
+                    desc ~= maxLongNameLength.spaces;
+                }
+                desc ~= longDescIndent.spaces;
+                auto indent = startIndent + maxShortNameLength + shortLongIndent + maxLongNameLength + longDescIndent;
+                if (!Opt.Description.length) {
+                    desc = desc.stripRight;
+                }
+                ret ~= desc ~ printWithIndent(indent, Opt.Description);
+            }
+
+            static if (Opt.EnvironmentVar.length) {
+                envVarDatum.name = Opt.EnvironmentVar;
+                envVarData ~= envVarDatum;
             }
         }}
 
@@ -778,6 +788,14 @@ version (unittest) {
             y = parts[1].to!int;
         }
     }
+}
+
+unittest {
+    import std.exception;
+    auto opts = ProgramOptions!(
+        Option!("opt", string).shortName!"o"
+    )();
+    assertThrown!ExpectedProgramArgument(opts.parse(["-o"]));
 }
 
 unittest {
@@ -902,7 +920,19 @@ unittest {
                           2. And something else that's not so sinister
       --opt4          THis is one that takes an env var
       --opt5          THis is one that takes an env var as well
+      --opt6
+      --opt7
+      --opt8
   -i  --incremental   sets some level incremental thingy
+      --opt10
+      --opt11
+      --opt12
+      --opt13
+  -x  --b0
+  -y  --b1
+  -z  --b2
+      --opt14
+      --opt15
 
 Environment Vars:
   OPT_4    See: --opt4
