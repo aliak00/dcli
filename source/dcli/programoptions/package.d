@@ -1,3 +1,4 @@
+///
 module dcli.programoptions;
 
 // version = dcli_programoptions_debug;
@@ -21,9 +22,50 @@ private void debug_print(Args...)(Args args, int line = __LINE__, string file = 
     The duplication policy can be passed to a `ProgramOptions` `Option.duplicatePolicy`
 */
 enum OptionDuplicatePolicy {
-    reject, lastOneWins, firstOneWins
+    /// Throws a `DuplicateProgramArgument`
+    reject,
+    /// The last argument determines the value of the option
+    lastOneWins,
+    /// The first argument determines the value of the option
+    firstOneWins
 }
 
+/**
+    Represents one program options. One of more of these can be given to
+    a `ProgramOptions` object as template arguments.
+
+    Params:
+        varName = The name of the variable that will hold the value of the option.
+            This value represents the default long name of the program option.
+        T = The type of this variable
+
+    Named_optional_arguments:
+
+    A number of named optional arguments can be given to an `Option` for e.g.:
+    ---
+    ProgramOptions!(
+        Option!("optionName", bool).shortName!"o";
+    );
+    ---
+
+    This will create an options object that can parse `--optionName` and `-o` on the command line.
+
+    The following named optional arguments are available:
+
+    <li>`shortName`: `string` - the short name for the option
+    <li>`longName`: `string` - the long name of the option if different from the variable name
+    <li>`defaultValue`: `T` - the default value if not supplied
+    <li>`description`: `string` - description for help message
+    <li>`environmentVar`: `string` - the name of the envrionemtn var that can set this option if present
+    <li>`caseSensitiveLongName`: `bool` - true if long name is case sensitive
+    <li>`caseSensitiveShortName`: `bool` - true if short name is case sensitive
+    <li>`incremental`: `bool` - true if this option represents an incremental value
+    <li>`validator`: `bool function(T)` - a function that will be given the value and must return true if the value is valid
+    <li>`seperator`: `string` - the seperator used to parse associative array values
+    <li>`parser`: `T function(string)` - a function that must return a T after parsing the string
+    <li>`bundleable`: `bool` - true if this short option can be bundled with other short options
+    <li>`duplicatePolicy`: `OptionDuplicatePolicy` - what to do when the option is encoutered for a second time
+*/
 template Option(string varName, T) {
     alias Option = OptionImpl!(varName, T);
 }
@@ -188,42 +230,54 @@ private template OptionImpl(
     }
 }
 
+/// Thrown when an error occurs in parsing
 class ProgramOptionException: Exception {
     this(string msg, string file = __FILE__, size_t line = __LINE__) {
         super(msg, file, line);
     }
 }
 
+/// Occurs when an argument is incorrectly formatted
 class MalformedProgramArgument: ProgramOptionException {
     this(string msg, string file = __FILE__, size_t line = __LINE__) {
         super(msg, file, line);
     }
 }
 
+/// Occurs when an argument does not validate
 class InvalidProgramArgument: ProgramOptionException {
     this(string msg, string file = __FILE__, size_t line = __LINE__) {
         super(msg, file, line);
     }
 }
 
+/// Occurs if there's a duplicate argument
 class DuplicateProgramArgument: ProgramOptionException {
     this(string msg, string file = __FILE__, size_t line = __LINE__) {
         super(msg, file, line);
     }
 }
 
-class ExpectedProgramArgument: ProgramOptionException {
+/// Occurs when a program argument is missing
+class MissingProgramArgument: ProgramOptionException {
     this(string msg, string file = __FILE__, size_t line = __LINE__) {
         super(msg, file, line);
     }
 }
 
-template isProgramOptions(T) {
+package(dcli) template isProgramOptions(T) {
     import std.traits: isInstanceOf;
     enum isProgramOptions = isInstanceOf!(ProgramOptions, T);
 }
 
-struct ProgramOptions(Options...) {
+/**
+    You can configure a `ProgramOptions` object with a number of `Option`s and then use it to parse
+    and array of command line arguments
+
+    Params:
+        Options = 1 or more `Option` objects, each representing one command line argument
+*/
+struct ProgramOptions(Options...) if (Options.length > 0) {
 
     import std.typecons: Flag, Tuple, tuple;
     import optional;
@@ -242,7 +296,7 @@ struct ProgramOptions(Options...) {
         noMatch
     }
 
-    /**
+    /*
         Why is this static you may ask... because of D's 'delegates can only have one context pointer' thing:
 
         https://www.bountysource.com/issues/1375082-cannot-use-delegates-as-parameters-to-non-global-template
@@ -388,12 +442,16 @@ struct ProgramOptions(Options...) {
         return false;
     }
 
-    string[] parse(const string[] args) {
+    /**
+        Parses the command line arguments according to the set of `Option`s that are passed in.
+        Environment variables are parsed first and then program args second
+    */
+    public string[] parse(const string[] args) {
         this.parseEnv;
         return this.parseArgs(args);
     }
 
-    void parseEnv() {
+    private void parseEnv() {
         import std.process: environment;
         import std.conv: ConvException;
 
@@ -419,7 +477,7 @@ struct ProgramOptions(Options...) {
         }
     }
 
-    string[] parseArgs(const string[] args) {
+    private string[] parseArgs(const string[] args) {
         import std.algorithm: startsWith, findSplit, filter, map;
         import std.range: drop, array, tee, take;
         import std.conv: to;
@@ -484,7 +542,7 @@ struct ProgramOptions(Options...) {
                 import ddash.range: nth;
                 auto next = args.nth(index + 1);
                 if (next.empty) {
-                    throw new ExpectedProgramArgument("Did not find value for arg " ~ args[index]);
+                    throw new MissingProgramArgument("Did not find value for arg " ~ args[index]);
                 }
                 return next.front;
             }
@@ -622,7 +680,10 @@ struct ProgramOptions(Options...) {
         return [];
     }
 
-    string toString() const {
+    /**
+        Returns an string that is a map the variable names and their values
+    */
+    public string toString() const {
         import std.conv: to;
         string ret = "{ ";
         static foreach (I, Opt; Options) {
@@ -635,7 +696,11 @@ struct ProgramOptions(Options...) {
         return ret;
     }
 
-    string helpText() const {
+    /**
+        Returns a string that represents a block of text that can be output to stdout
+        to display a help message
+    */
+    public string helpText() const {
         import std.string: leftJustify, stripRight;
         import std.typecons: Tuple;
 
@@ -772,32 +837,14 @@ private string printWithIndent(size_t indent, string description, int maxColumnC
     return ret;
 }
 
-version (unittest) {
-    struct Custom {
-        int x;
-        int y;
-        this(int a, int b) {
-            x = a;
-            y = b;
-        }
-        this(string str) {
-            import std.string: split;
-            import std.conv: to;
-            auto parts = str.split(",");
-            x = parts[0].to!int;
-            y = parts[1].to!int;
-        }
-    }
-}
-
 unittest {
     import std.exception;
     auto opts = ProgramOptions!(
         Option!("opt", string).shortName!"o"
     )();
-    assertThrown!ExpectedProgramArgument(opts.parse(["-o"]));
+    assertThrown!MissingProgramArgument(opts.parse(["-o"]));
 }
-
+///
 unittest {
     import std.file: thisExePath;
 
@@ -826,6 +873,21 @@ unittest {
     ];
 
     enum Enum { one, two, }
+    static struct Custom {
+        int x;
+        int y;
+        this(int a, int b) {
+            x = a;
+            y = b;
+        }
+        this(string str) {
+            import std.string: split;
+            import std.conv: to;
+            auto parts = str.split(",");
+            x = parts[0].to!int;
+            y = parts[1].to!int;
+        }
+    }
 
     auto options = ProgramOptions!(
         Option!("opt1", string)

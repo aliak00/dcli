@@ -8,7 +8,6 @@
 1. Supports default values
 1. You can supply custom types and they will be called with a string that you can parse
 
-
 ### Enhancements over `std.getopt`:
 
 1. `getopt(args)` is destructive on args.
