@@ -1,6 +1,6 @@
 import std.stdio;
-import dcli.programoptions;
-import dcli.programcommands;
+import dcli.program_options;
+import dcli.program_commands;
 
 void handleCommand2(T)(T command) {
     writeln("handling command 2 - ", command);

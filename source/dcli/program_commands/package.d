@@ -1,6 +1,6 @@
-module dcli.programcommands;
+module dcli.program_commands;
 
-import dcli.programoptions;
+import dcli.program_options;
 import ddash.lang: Void, isVoid;
 import optional;
 import ddash.algorithm: indexWhere;

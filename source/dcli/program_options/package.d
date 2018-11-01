@@ -1,5 +1,5 @@
 ///
-module dcli.programoptions;
+module dcli.program_options;
 
 // version = dcli_programoptions_debug;
 
