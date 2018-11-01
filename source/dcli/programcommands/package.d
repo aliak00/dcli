@@ -79,6 +79,7 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
         public Commands[0] options;
     } else {
         enum StartIndex = 0;
+        public Void options;
     }
 
     // Mixin the variables for each command
@@ -152,7 +153,7 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
         debug_print("plucked => ", data);
 
         if (data[0].length) {
-            options.parse(data[0]);
+            this.options.parse(data[0]);
         }
 
         if (data[1].length) {
@@ -164,7 +165,7 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
     public string helpText() const {
         string ret;
         static if (isProgramOptions!(Commands[0])) {
-            ret ~= options.helpText;
+            ret ~= this.options.helpText;
             ret ~= "\n";
         }
         static if (StartIndex < Commands.length)
@@ -181,7 +182,7 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
         import std.conv: to;
         string ret = "{ ";
         static if (isProgramOptions!(Commands[0])) {
-            ret ~= "options: " ~ options.toString ~ ", ";
+            ret ~= "options: " ~ this.options.toString ~ ", ";
         }
         static foreach (I; StartIndex .. Commands.length) {
             ret ~= Commands[I].Name ~ ": { ";
