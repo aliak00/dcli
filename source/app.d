@@ -2,6 +2,18 @@ import std.stdio;
 import dcli.programoptions;
 import dcli.programcommands;
 
+void handleCommand2(T)(T command) {
+    writeln("handling command 2 - ", command);
+}
+
+void handleCommand3(T)(T command) {
+    writeln("handling command 3 - ", command);
+}
+
+void handleCommand3Sub1(T)(T command) {
+    writeln("handling command 3, sub 1 - ", command);
+}
+
 alias MainCommands = ProgramCommands!(
     ProgramOptions!(
         Option!("glob1", string).shortName!"a".description!"desc",
@@ -13,7 +25,8 @@ alias MainCommands = ProgramCommands!(
             ),
     ),
     Command!"cmd2"
-        .description!"desc",
+        .description!"desc"
+        .handler!handleCommand2,
     Command!"cmd3"
         .options!(
             ProgramCommands!(
@@ -26,9 +39,11 @@ alias MainCommands = ProgramCommands!(
                             Option!("opt4", string).shortName!"e".description!"desc",
                         ),
                     )
-                    .description!"desc",
+                    .description!"desc"
+                    .handler!handleCommand3Sub1,
             ),
         )
+        .handler!handleCommand3
         .description!"desc",
 );
 
@@ -59,8 +74,9 @@ void main() {
     }
 
     if (commands.cmd3) {
-        writeln("cmd3 ");
+        writeln("cmd3");
     }
 
     commands.helpText.writeln;
+    commands.handle;
 }

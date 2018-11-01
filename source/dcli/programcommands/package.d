@@ -41,13 +41,21 @@ private struct CommandImpl(
     string _name,
     string _description = null,
     _Options = Void,
+    alias _handler = null,
 ) {
     alias Name = _name;
     alias Description = _description;
     alias Options = _Options;
-    public alias description(string value) = CommandImpl!(Name, value, Options);
+    alias Handler = _handler;
+
+    public alias description(string value) = CommandImpl!(Name, value, Options, Handler);
+
     public static template options(U) if (isProgramOptions!U || isProgramCommands!U) {
-        alias options = CommandImpl!(Name, Description, U);
+        alias options = CommandImpl!(Name, Description, U, Handler);
+    }
+
+    public static template handler(alias value) {
+        alias handler = CommandImpl!(Name, Description, Options, value);
     }
 
     private bool active = false;
@@ -201,5 +209,19 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
         }
         ret ~= " }";
         return ret;
+    }
+
+    public void handle() {
+        import bolts: isNullType;
+        static foreach (I; StartIndex .. Commands.length) {
+            if (mixin(Commands[I].Name)) { // if this command is active
+                static if (!isNullType!(Commands[I].Handler)) {
+                    Commands[I].Handler(mixin(Commands[I].Name));
+                }
+                static if (isProgramCommands!(Commands[I].Options)) {
+                    mixin(Commands[I].Name ~ ".handle();");
+                }
+            }
+        }
     }
 }
