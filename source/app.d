@@ -3,26 +3,16 @@ import dcli.programoptions;
 import dcli.programcommands;
 
 alias Command1Options = ProgramOptions!(
-    Option!("opt1", string).shortName!"b".description!"desc",
+    Option!("opt1", string).shortName!"b".description!"desc"
 );
-alias Command1 = Command!(
-    "cmd1",
-    Command1Options,
-);
+alias Command1 = Command!"cmd1".options!Command1Options;
 
-alias Command2 = Command!(
-    "cmd2",
-    "desc",
-);
+alias Command2 = Command!"cmd2".description!"desc";
 
 alias Command3Sub1CommandOptions = ProgramOptions!(
     Option!("opt4", string).shortName!"e".description!"desc",
 );
-alias Command3Sub1Command = Command!(
-    "sub1",
-    Command3Sub1CommandOptions,
-    "desc",
-);
+alias Command3Sub1Command = Command!"sub1".options!Command3Sub1CommandOptions.description!"desc";
 alias Command3Options = ProgramOptions!(
     Option!("opt3", string).shortName!"d".description!"desc",
 );
@@ -31,11 +21,7 @@ alias Command3Commands = ProgramCommands!(
     Command3Sub1Command,
 );
 
-alias Command3 = Command!(
-    "cmd3",
-    Command3Commands,
-    "desc",
-);
+alias Command3 = Command!"cmd3".options!Command3Commands.description!"desc";
 
 alias MainOptions = ProgramOptions!(
     Option!("glob1", string).shortName!"a".description!"desc",

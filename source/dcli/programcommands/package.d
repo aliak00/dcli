@@ -29,12 +29,37 @@ private void debug_print(Args...)(Args args, int line = __LINE__, string file = 
 
 private template isCommand(T) {
     import std.traits: isInstanceOf;
-    enum isCommand = isInstanceOf!(Command, T);
+    enum isCommand = isInstanceOf!(CommandImpl, T);
 }
 
 private template isProgramCommands(T) {
     import std.traits: isInstanceOf;
     enum isProgramCommands = isInstanceOf!(ProgramCommands, T);
+}
+
+private struct CommandImpl(
+    string _name,
+    string _description = null,
+    _Options = Void,
+) {
+    alias Name = _name;
+    alias Description = _description;
+    alias Options = _Options;
+    public alias description(string value) = CommandImpl!(Name, value, Options);
+    public static template options(U) if (isProgramOptions!U || isProgramCommands!U) {
+        alias options = CommandImpl!(Name, Description, U);
+    }
+
+    private bool active = false;
+    public T opCast(T: bool)() {
+        return active;
+    }
+    public Options optionsPayload;
+    alias optionsPayload this;
+}
+
+public template Command(string name) {
+    alias Command = CommandImpl!name;
 }
 
 /*
@@ -44,26 +69,6 @@ private template isProgramCommands(T) {
 */
 private void parse(Void, const string[]) {}
 private string toString(Void) { return ""; }
-
-public struct Command(string name, T, string desc) if (isProgramOptions!T || isProgramCommands!T || isVoid!T) {
-    alias Name = name;
-    alias Desc = desc;
-    alias Options = T;
-    private bool active = false;
-    public T opCast(T: bool)() {
-        return active;
-    }
-    public T options;
-    alias options this;
-}
-
-public template Command(string name, string desc) {
-    alias Command = Command!(name, Void, desc);
-}
-
-public template Command(string name, T = Void) {
-    alias Command = Command!(name, T, null);
-}
 
 public struct ProgramCommands(Commands...) if (Commands.length > 0) {
     import std.conv: to;
@@ -98,7 +103,7 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
         command: switch (cmd) {
             static foreach (I; StartIndex .. Commands.length) {
                 mixin(`case "` ~ Commands[I].Name ~ `":`);
-                    mixin(Commands[I].Name ~ ".options.parse(args);");
+                    mixin(Commands[I].Name ~ ".parse(args);");
                     break command;
             }
             default:
@@ -165,7 +170,7 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
         static if (StartIndex < Commands.length)
             ret ~= "Commands:\n";
         static foreach (I; StartIndex .. Commands.length) {
-            ret ~= "  " ~ Commands[I].Name ~ "  " ~ mixin(Commands[I].Name ~ ".Desc");
+            ret ~= "  " ~ Commands[I].Name ~ "  " ~ mixin(Commands[I].Name ~ ".Description");
             static if (I < Commands.length - 1)
                 ret ~= "\n";
         }
