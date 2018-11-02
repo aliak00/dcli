@@ -272,7 +272,18 @@ package(dcli) template isProgramOptions(T) {
 
 /**
     You can configure a `ProgramOptions` object with a number of `Option`s and then use it to parse
-    and array of command line arguments
+    and array of command line arguments.
+
+    The object will generate its member variables from the `Option`s you pass in, for e.g.
+
+    ---
+    auto opts = ProgramOptions!(Option!("one", int), Option!("two", string[]));
+    static assert(is(typeof(opts.one) == int));
+    static assert(is(typeof(opts.two) == string[]));
+    ---
+
+    All the member varibles will have their `init` values unless you specify a `defaultValue` for
+    an `Option`.
 
     Params:
         Options = 1 or more `Option` objects, each representing one command line argument
