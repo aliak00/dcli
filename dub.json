@@ -14,19 +14,19 @@
 	"license": "MIT",
 	"subPackages": [
 		{
-			"name": "programoptions",
+			"name": "program_options",
 			"description": "Specify and parse command line options",
-			"sourcePaths": ["source/dcli/programoptions"],
+			"sourcePaths": ["source/dcli/program_options"],
 			"dependencies": { "ddash": "*" },
 			"targetPath": "bin"
 		}
 	],
 	"subPackages": [
 		{
-			"name": "programcommands",
+			"name": "program_commands",
 			"description": "Specify and parse command line commands",
-			"sourcePaths": ["source/dcli/programcommands"],
-			"dependencies": { "ddash": "*", "dcli:programoptions": "*" },
+			"sourcePaths": ["source/dcli/program_commands"],
+			"dependencies": { "ddash": "*", "dcli:program_options": "*" },
 			"targetPath": "bin"
 		}
 	]
