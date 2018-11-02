@@ -19,9 +19,7 @@
 			"sourcePaths": ["source/dcli/program_options"],
 			"dependencies": { "ddash": "*" },
 			"targetPath": "bin"
-		}
-	],
-	"subPackages": [
+		},
 		{
 			"name": "program_commands",
 			"description": "Specify and parse command line commands",
