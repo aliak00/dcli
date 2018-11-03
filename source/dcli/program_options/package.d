@@ -1,5 +1,188 @@
-///
+/**
+    Features:
+
+    <li> Input validation
+    <li> Customize seperators for associative array args
+    <li> Supports environment variables
+    <li> Supports default values
+    <li> Supports custom types that have a constructor that is called with a string
+    <li> You can supply custom types and they will be called with a string that you can parse
+
+    Enhancements_over_std.getopt:
+
+    <li> `getopt(args)` is destructive on args.
+    <li> You cannot create your getopts and the parse later, which in combination with try/catch leads to awkward code
+    <li> `getopt` doesn't accept `$ ./program -p 3`. For short opts, you have to do `$ ./program -p3`.
+    <li> `getopt` doesn't allow case-sensitive short name and a case-insensitive long name
+    <li> `getopt` will initialize an array type with the default values AND what the program arg was.
+    <li> You cannot assign values to bundled short args, they are only incrementable
+    <li> There is no way to handle what happens with duplicate arguments
+*/
 module dcli.program_options;
+
+///
+unittest {
+    import std.file: thisExePath;
+    import std.process: environment;
+
+    environment["OPT_4"] = "22";
+
+    auto args = [
+        thisExePath,            // Program name should be ignored
+        "program_name",         // Unknown argument, there's a handler for stray arguments
+        "--opt1", "value1",     // "--arg value" format
+        "-b", "1",              // "-a 1" format, case sensitive short name by default
+        "--Opt3=2",             // "--arg=value" format, case insesitive long name by default
+        // "--opt4",            // Set by an envaronment variable
+        "--OPT5", "4",          // first value of an int array
+        "--opt5", "5",          // second value of an int array
+        // "--opt6",            // Not set, will be give default value of int array
+        "--opt7", "9",          // Also an array
+        "--unknown", "ha",      // Unknown option and value
+        "--opt8=two",           // An enum vaue
+        "-i", "-j", "--incremental", "--opt9", // Option aliasing
+        "--opt10", "11",        // A validated, must be greater than 10
+        "--opt11", "3,4,5",     // Array format "--arg=v0,v1,v2"
+        "--opt12", "1=2::3=4::5=6", // Associative array with custom seperator (Default is ",")
+        "--opt13", "verbose",   // A custom parsed value - opt13 is an int
+        "-xyz=-7",              // Setting multiple, bundleable options at once
+        "--opt1", "value2",     // Uses duplication policy to be ignored
+        "--opt14", "1,2",       // Parses to a Custom type
+        "--opt15",              // Boolean, no value
+        "--",                   // Args after this are ignored
+        "extra",
+    ];
+
+    enum Enum { one, two, }
+    static struct Custom {
+        int x;
+        int y;
+        this(int a, int b) {
+            x = a;
+            y = b;
+        }
+        this(string str) {
+            import std.string: split;
+            import std.conv: to;
+            auto parts = str.split(",");
+            x = parts[0].to!int;
+            y = parts[1].to!int;
+        }
+    }
+
+    auto options = ProgramOptions!(
+        Option!("opt1", string)
+            .shortName!"a"
+            .description!"This is the description for option 1"
+            .duplicatePolicy!(OptionDuplicatePolicy.firstOneWins),
+        Option!("opt2", int)
+            .shortName!"b"
+            .description!"This is the description for option 2",
+        Option!("opt3", int)
+            .shortName!"B"
+            .description!(
+`There are three kinds of comments:
+    1. Something rather sinister
+    2. And something else that's not so sinister`
+        ),
+        Option!("opt4", int)
+            .defaultValue!3
+            .environmentVar!"OPT_4"
+            .description!"THis is one that takes an env var",
+        Option!("opt5", int[])
+            .environmentVar!"OPT_5"
+            .description!"THis is one that takes an env var as well",
+        Option!("opt6", int[])
+            .defaultValue!([6, 7, 8]),
+        Option!("opt7", float[])
+            .defaultValue!([1, 2]),
+        Option!("opt8", Enum),
+        Option!("opt9", int)
+            .shortName!"i|j"
+            .longName!"incremental|opt9"
+            .incremental!true
+            .description!"sets some level incremental thingy",
+        Option!("opt10", int)
+            .validator!(a => a > 10),
+        Option!("opt11", int[]),
+        Option!("opt12", int[int])
+            .separator!"::",
+        Option!("opt13", int)
+            .parser!((value) {
+                if (value == "verbose") return 7;
+                return -1;
+            }),
+        Option!("b0", int)
+            .shortName!"x",
+        Option!("b1", int)
+            .shortName!"y",
+        Option!("b2", int)
+            .shortName!"z",
+        Option!("opt14", Custom),
+        Option!("opt15", bool),
+        Option!("opt16", bool)
+            .longName!""
+            .environmentVar!"OPT_16"
+            .description!"THis one only takes and envornment variable and cant be set with any flags",
+    )();
+
+    string[] unknownArgs;
+    options.unknownArgHandler = (string name) {
+        unknownArgs ~= name;
+        return false;
+    };
+
+    assert(options.parse(args) == ["extra"]);
+    assert(unknownArgs == ["program_name", "--unknown", "ha"]);
+
+    assert(options.opt1 == "value1");
+    assert(options.opt2 == 1);
+    assert(options.opt3 == 2);
+    assert(options.opt4 == 22);
+    assert(options.opt5 == [4, 5]);
+    assert(options.opt6 == [6, 7, 8]);
+    assert(options.opt7 == [9]);
+    assert(options.opt8 == Enum.two);
+    assert(options.opt9 == 4);
+    assert(options.opt10 > 10);
+    assert(options.opt11 == [3, 4, 5]);
+    assert(options.opt12 == [1: 2, 3: 4, 5: 6]);
+    assert(options.opt13 == 7);
+    assert(options.b0 == -7);
+    assert(options.b1 == -7);
+    assert(options.b2 == -7);
+    assert(options.opt14 == Custom(1, 2));
+    assert(options.opt15 == true);
+
+    assert(options.helpText ==
+`Options:
+  -a  --opt1          This is the description for option 1
+  -b  --opt2          This is the description for option 2
+  -B  --opt3          There are three kinds of comments:
+                          1. Something rather sinister
+                          2. And something else that's not so sinister
+      --opt4          THis is one that takes an env var
+      --opt5          THis is one that takes an env var as well
+      --opt6
+      --opt7
+      --opt8
+  -i  --incremental   sets some level incremental thingy
+      --opt10
+      --opt11
+      --opt12
+      --opt13
+  -x  --b0
+  -y  --b1
+  -z  --b2
+      --opt14
+      --opt15
+
+Environment Vars:
+  OPT_4    See: --opt4
+  OPT_5    See: --opt5
+  OPT_16   THis one only takes and envornment variable and cant be set with any flags`
+  );
+}
 
 // version = dcli_programoptions_debug;
 
@@ -290,7 +473,7 @@ package(dcli) template isProgramOptions(T) {
 */
 struct ProgramOptions(Options...) if (Options.length > 0) {
 
-    import std.typecons: Flag, Tuple, tuple;
+    import std.typecons: Flag, Tuple, tuple, Yes, No;
     import optional;
 
     static foreach (I, opt; Options) {
@@ -318,20 +501,26 @@ struct ProgramOptions(Options...) if (Options.length > 0) {
 
         So making this a static removes the need for an extra context pointer
     */
-    private static AssignResult tryAssign(alias option, T)(ref T self, string assumedValue) {
+    private static AssignResult tryAssign(alias option, T)(
+        ref T self,
+        string assumedValue,
+        Flag!"ignoreDuplicate" ignoreDuplicate = No.ignoreDuplicate,
+    ) {
         import std.traits: isNarrowString, isArray, isAssociativeArray;
         import std.conv: to;
         import std.array: split;
         import std.algorithm: filter;
 
         // If this is the first encounter, we also set the value to T.init
-        auto p = option.VarName in self.encounteredOptions;
         bool isDuplicate = false;
-        if (!(p is null) && !*p) {
-            *p = true;
-            mixin("self."~option.VarName ~ " = option.Type.init;");
-        } else {
-            isDuplicate = true;
+        if (!ignoreDuplicate) {
+            auto p = option.VarName in self.encounteredOptions;
+            if (p !is null && !*p) {
+                *p = true;
+                mixin("self."~option.VarName ~ " = option.Type.init;");
+            } else {
+                isDuplicate = true;
+            }
         }
 
         static if (!(isArray!(option.Type) && !isNarrowString!(option.Type)) && !isAssociativeArray!(option.Type) && !option.Incremental) {
@@ -477,7 +666,7 @@ struct ProgramOptions(Options...) if (Options.length > 0) {
                 }
                 if (value.length) {
                     try {
-                        tryAssign!(opt)(this, value);
+                        tryAssign!(opt)(this, value, Yes.ignoreDuplicate);
                     } catch (ConvException ex) {
                         throw new MalformedProgramArgument(
                             "Could not set '" ~ opt.EnvironmentVar  ~ "' to '" ~ value ~ "' - " ~ ex.msg
@@ -854,162 +1043,4 @@ unittest {
         Option!("opt", string).shortName!"o"
     )();
     assertThrown!MissingProgramArgument(opts.parse(["-o"]));
-}
-///
-unittest {
-    import std.file: thisExePath;
-
-    auto args = [
-        thisExePath,
-        "program_name",
-        "--opt1", "value1",
-        "-b", "1",
-        "--Opt3=2",
-        "--OPT5", "4",
-        "--opt5", "5",
-        "--opt7", "9",
-        "--unknown", "ha",
-        "--opt8=two",
-        "-i", "-j", "--incremental", "--opt9",
-        "--opt10", "11",
-        "--opt11", "3,4,5",
-        "--opt12", "1=2::3=4::5=6",
-        "--opt13", "verbose",
-        "-xyz=-7",
-        "--opt1", "value2",
-        "--opt14", "1,2",
-        "--opt15",
-        "--",
-        "extra",
-    ];
-
-    enum Enum { one, two, }
-    static struct Custom {
-        int x;
-        int y;
-        this(int a, int b) {
-            x = a;
-            y = b;
-        }
-        this(string str) {
-            import std.string: split;
-            import std.conv: to;
-            auto parts = str.split(",");
-            x = parts[0].to!int;
-            y = parts[1].to!int;
-        }
-    }
-
-    auto options = ProgramOptions!(
-        Option!("opt1", string)
-            .shortName!"a"
-            .description!"This is the description for option 1"
-            .duplicatePolicy!(OptionDuplicatePolicy.firstOneWins),
-        Option!("opt2", int)
-            .shortName!"b"
-            .description!"This is the description for option 2",
-        Option!("opt3", int)
-            .shortName!"B"
-            .description!(
-`There are three kinds of comments:
-    1. Something rather sinister
-    2. And something else that's not so sinister`
-        ),
-        Option!("opt4", int)
-            .defaultValue!3
-            .environmentVar!"OPT_4"
-            .description!"THis is one that takes an env var",
-        Option!("opt5", int[])
-            .environmentVar!"OPT_5"
-            .description!"THis is one that takes an env var as well",
-        Option!("opt6", int[])
-            .defaultValue!([6, 7, 8]),
-        Option!("opt7", float[])
-            .defaultValue!([1, 2]),
-        Option!("opt8", Enum),
-        Option!("opt9", int)
-            .shortName!"i|j"
-            .longName!"incremental|opt9"
-            .incremental!true
-            .description!"sets some level incremental thingy",
-        Option!("opt10", int)
-            .validator!(a => a > 10),
-        Option!("opt11", int[]),
-        Option!("opt12", int[int])
-            .separator!"::",
-        Option!("opt13", int)
-            .parser!((value) {
-                if (value == "verbose") return 7;
-                return -1;
-            }),
-        Option!("b0", int)
-            .shortName!"x",
-        Option!("b1", int)
-            .shortName!"y",
-        Option!("b2", int)
-            .shortName!"z",
-        Option!("opt14", Custom),
-        Option!("opt15", bool),
-        Option!("opt16", bool)
-            .longName!""
-            .environmentVar!"OPT_16"
-            .description!"THis one only takes and envornment variable and cant be set with any flags",
-    )();
-
-    string[] unknownArgs;
-    options.unknownArgHandler = (string name) {
-        unknownArgs ~= name;
-        return false;
-    };
-
-    assert(options.parse(args) == ["extra"]);
-    assert(unknownArgs == ["program_name", "--unknown", "ha"]);
-
-    assert(options.opt1 == "value1");
-    assert(options.opt2 == 1);
-    assert(options.opt3 == 2);
-    assert(options.opt4 == 3);
-    assert(options.opt5 == [4, 5]);
-    assert(options.opt6 == [6, 7, 8]);
-    assert(options.opt7 == [9]);
-    assert(options.opt8 == Enum.two);
-    assert(options.opt9 == 4);
-    assert(options.opt10 > 10);
-    assert(options.opt11 == [3, 4, 5]);
-    assert(options.opt12 == [1: 2, 3: 4, 5: 6]);
-    assert(options.opt13 == 7);
-    assert(options.b0 == -7);
-    assert(options.b1 == -7);
-    assert(options.b2 == -7);
-    assert(options.opt14 == Custom(1, 2));
-    assert(options.opt15 == true);
-
-    assert(options.helpText ==
-`Options:
-  -a  --opt1          This is the description for option 1
-  -b  --opt2          This is the description for option 2
-  -B  --opt3          There are three kinds of comments:
-                          1. Something rather sinister
-                          2. And something else that's not so sinister
-      --opt4          THis is one that takes an env var
-      --opt5          THis is one that takes an env var as well
-      --opt6
-      --opt7
-      --opt8
-  -i  --incremental   sets some level incremental thingy
-      --opt10
-      --opt11
-      --opt12
-      --opt13
-  -x  --b0
-  -y  --b1
-  -z  --b2
-      --opt14
-      --opt15
-
-Environment Vars:
-  OPT_4    See: --opt4
-  OPT_5    See: --opt5
-  OPT_16   THis one only takes and envornment variable and cant be set with any flags`
-  );
 }

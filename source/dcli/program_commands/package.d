@@ -340,7 +340,6 @@ version (unittest) {
 }
 
 unittest {
-
     alias MainCommands = ProgramCommands!(
         ProgramOptions!(
             Option!("glob1", string).shortName!"a".description!"desc",
