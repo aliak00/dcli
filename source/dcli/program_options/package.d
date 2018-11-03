@@ -1,4 +1,6 @@
 /**
+    Handles program options which are arguments passed with a leading `-` or `--` and followed by a value
+
     Features:
 
     <li> Input validation

@@ -189,13 +189,56 @@ private template isProgramCommands(T) {
     enum isProgramCommands = isInstanceOf!(ProgramCommands, T);
 }
 
+private string makeValidCamelCase(string name)() if (name.length) {
+    import std.uni: toUpper, isAlpha, isAlphaNum;
+
+    string ret;
+    enum Action {
+        nothing,
+        capitalize,
+    }
+    auto action = Action.nothing;
+
+    if (name[0].isAlpha || name[0] == '_') { // record first character only if valid first character
+        ret ~= name[0];
+    }
+    for (int i = 1; i < name.length; ++i) {
+        if (!name[i].isAlphaNum && name[0] != '_') {
+            action = Action.capitalize;
+            continue;
+        }
+
+        final switch (action) {
+        case Action.nothing:
+            ret ~= name[i];
+            break;
+        case Action.capitalize:
+            ret ~= toUpper(name[i]);
+            break;
+        }
+
+        action = Action.nothing;
+    }
+    return ret;
+}
+
+unittest {
+    static assert(makeValidCamelCase!"a-a" == "aA");
+    static assert(makeValidCamelCase!"-a" == "a");
+    static assert(makeValidCamelCase!"-a-" == "a");
+    static assert(makeValidCamelCase!"9a" == "a");
+    static assert(makeValidCamelCase!"_9a" == "_9a");
+}
+
 private struct CommandImpl(
     string _name,
     string _description = null,
     _Args = Void,
     alias _handler = null,
 ) {
+
     alias Name = _name;
+    alias Identifier = makeValidCamelCase!Name;
     alias Description = _description;
     alias Args = _Args;
     alias Handler = _handler;
@@ -219,11 +262,20 @@ private struct CommandImpl(
 }
 
 /**
-    Represents one program command. One of more of these can be given to
+    Represents one program command which identified the expected string on the command line. One of more of these can be given to
     a `ProgramCommands` object as template arguments.
 
+    The `Command` object is accessible from a `ProgramCommands` object via the name given to the command.
+
+    If the name is not a valid identifier, it is transformed in to camel case by the following rules:
+    <ol>
+        <li> if first character is invalid first character for identifier, it is skipped.
+        <li> if any following character is not a valid identifier character, it is skipped AND the next valid character
+        is capitalized.
+    </ol>
+
     Params:
-        name = The name of the command
+        name = The name of the command.
 
     Named_optional_arguments:
 
@@ -244,7 +296,7 @@ private struct CommandImpl(
     <li>`handler`: `void function(T)` - this is a handler function that will only be called if this command was present on the
         command line. The type `T` passed in will be your `ProgramCommands` structure instance
 */
-public template Command(string name) {
+public template Command(string name) if (name.length > 0) {
     alias Command = CommandImpl!name;
 }
 
@@ -307,7 +359,7 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
             isCommand!(Commands[I]),
             "Expected type Command. Found " ~ Commands[I].stringof ~ " for arg " ~ I.to!string
         );
-        mixin("public Commands[I] " ~ Commands[I].Name ~ ";");
+        mixin("public Commands[I] " ~ Commands[I].Identifier ~ ";");
     }
 
     // Get all available commands
@@ -323,7 +375,7 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
         command: switch (cmd) {
             static foreach (I; StartIndex .. Commands.length) {
                 mixin(`case "` ~ Commands[I].Name ~ `":`);
-                    mixin(Commands[I].Name ~ ".parse(args);");
+                    mixin(Commands[I].Identifier ~ ".parse(args);");
                     break command;
             }
             default:
@@ -337,7 +389,7 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
         command: switch (cmd) {
             static foreach (I; StartIndex .. Commands.length) {
                 mixin(`case "` ~ Commands[I].Name ~ `":`);
-                    mixin(Commands[I].Name ~ ".active = true;");
+                    mixin(Commands[I].Identifier ~ ".active = true;");
                     break command;
             }
             default:
@@ -419,14 +471,14 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
         }
         static foreach (I; StartIndex .. Commands.length) {
             ret ~= Commands[I].Name ~ ": { ";
-            ret ~= "active: " ~ mixin(Commands[I].Name ~ ".active ? \"true\" : \"false\"");
+            ret ~= "active: " ~ mixin(Commands[I].Identifier ~ ".active ? \"true\" : \"false\"");
             ret ~= ", ";
             static if (isProgramOptions!(Commands[I].Args)) {
                 ret ~= "options";
             } else {
                 ret ~= "commands";
             }
-            ret ~= ": " ~ mixin(Commands[I].Name ~ ".toString");
+            ret ~= ": " ~ mixin(Commands[I].Identifier ~ ".toString");
             ret ~= " }";
             static if (I < Commands.length - 1) {
                 ret ~= ", ";
@@ -443,12 +495,12 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
     public void executeHandlers() {
         import bolts: isNullType;
         static foreach (I; StartIndex .. Commands.length) {
-            if (mixin(Commands[I].Name)) { // if this command is active
+            if (mixin(Commands[I].Identifier)) { // if this command is active
                 static if (!isNullType!(Commands[I].Handler)) {
                     Commands[I].Handler(this);
                 }
                 static if (isProgramCommands!(Commands[I].Args)) {
-                    mixin(Commands[I].Name ~ ".executeHandlers();");
+                    mixin(Commands[I].Identifier ~ ".executeHandlers();");
                 }
             }
         }
@@ -491,4 +543,10 @@ version (unittest) {
             handledCommand3Sub1 = true;
         }
     }
+}
+
+unittest {
+    auto commands = ProgramCommands!(Command!"dashed-command")();
+    commands.parse(["dashed-command"]);
+    assert(cast(bool)commands.dashedCommand);
 }
