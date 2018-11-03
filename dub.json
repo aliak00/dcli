@@ -4,10 +4,9 @@
 		"Ali Akhtarzada"
 	],
 	"dependencies": {
-		"ddash": "*"
+		"dcli:program_options": "*",
+		"dcli:program_commands": "*"
 	},
-	"mainSourceFile": "source/app.d",
-	"targetType": "executable",
 	"targetPath": "bin",
 	"description": "A library to help with building CLIs in D",
 	"copyright": "Copyright © 2018, Ali Akhtarzada",
