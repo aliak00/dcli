@@ -301,22 +301,45 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
     }
 }
 
+version (unittest) {
+    struct Fixtures {
+        static:
+
+        private bool handledCommand2 = false;
+        private bool handledCommand3 = false;
+        private bool handledCommand3Sub1 = false;
+
+        bool checkResetHandledCommand2() {
+            const ret = handledCommand2;
+            scope(exit) handledCommand2 = false;
+            return ret;
+        }
+        bool checkResetHandledCommand3() {
+            const ret = handledCommand3;
+            scope(exit) handledCommand3 = false;
+            return ret;
+        }
+        bool checkResetHandledCommand3Sub1() {
+            const ret = handledCommand3Sub1;
+            scope(exit) handledCommand3Sub1 = false;
+            return ret;
+        }
+
+        void handleCommand2(T)(T command) {
+            handledCommand2 = true;
+        }
+
+        void handleCommand3(T)(T command) {
+            handledCommand3 = true;
+        }
+
+        void handleCommand3Sub1(T)(T command) {
+            handledCommand3Sub1 = true;
+        }
+    }
+}
+
 unittest {
-    bool a = false;
-    bool b = false;
-    bool c = false;
-
-    void handleCommand2(T)(T command) {
-        a = true;
-    }
-
-    void handleCommand3(T)(T command) {
-        b = true;
-    }
-
-    void handleCommand3Sub1(T)(T command) {
-        c = true;
-    }
 
     alias MainCommands = ProgramCommands!(
         ProgramOptions!(
@@ -329,7 +352,7 @@ unittest {
                 ),
         ),
         Command!"cmd2"
-            // .handler!handleCommand2
+            .handler!(Fixtures.handleCommand2)
             .description!"desc",
         Command!"cmd3"
             .args!(
@@ -343,11 +366,11 @@ unittest {
                                 Option!("opt4", string).shortName!"e".description!"desc",
                             ),
                         )
-                        // .handler!handleCommand3Sub1
+                        .handler!(Fixtures.handleCommand3)
                         .description!"desc",
                 ),
             )
-            // .handler!handleCommand3
+            .handler!(Fixtures.handleCommand3Sub1)
             .description!"desc",
     );
 
@@ -380,9 +403,9 @@ Commands:
   cmd3  desc`
   );
 
-    // commands.executeHandlers;
+    commands.executeHandlers;
 
-    // assert(a == false);
-    // assert(b == true);
-    // assert(c == true);
+    assert(!Fixtures.checkResetHandledCommand2);
+    assert( Fixtures.checkResetHandledCommand3);
+    assert( Fixtures.checkResetHandledCommand3Sub1);
 }
