@@ -1,5 +1,156 @@
-///
+/**
+    Handles program commands, which are arguments passed to a program that are not prefixed with `-` or `--`. So that
+    you handle programs that can be executed in this format:
+
+    ---
+    $ ./program -v --global-option=7 command1 --parameter="yo" sub-command --another-parameter=42
+    ---
+
+    Usage:
+
+    The basic idea is to create a `ProgramCommands` structure and then define a number of `Command`s that it can handle and
+    optionally, a set of $(DDOX_NAMED_REF dcli.program_options, `ProgramOptions`) that it can handle. Each `Command` can in
+    turn have it's own `ProgramCommands`.
+
+    Handlers:
+
+    Handlers are provided to be able to eacily handle when a command is encountered. This will allow you to structure your
+    program with a module based architecture, where each "handler" can e.g. pass the commands to a module that is build
+    specifically for handling that command.
+
+    E.g.:
+    ---
+    // install.d
+    void commandHandler(T)(T commands) {
+        writeln(commands.install); // prints true
+    }
+    // main.d
+    static import install, build;
+    void main(string[] args) {
+        auto commands = ProgramCommands!(
+            Command!"build".handler!(build.commandHandler)
+            Command!"install".handler!(install.commandHandler)
+        )();
+        commands.parse(args);
+        commands.executeHandlers();
+    }
+    // Run it
+    $ ./program install
+    $ >> true
+    ---
+
+    Inner_ProgramOptions:
+
+    The first argument to a `ProgramCommands` object can optionally be a $(DDOX_NAMED_REF dcli.program_options, `ProgramOptions`)
+    object. In this case, the program options are accessible with an internal variable named `options`
+
+    E.g.:
+    ---
+    auto commands = ProgramCommands!(
+        ProgramOptions!(Options!("opt1", string)),
+        Command!"command1",
+        Command!"command2".args!(
+            ProgramOptions!(Options!("opt2", string))
+        )
+    )();
+
+    commands.options.opt1; // access the option
+    commands.command1; // access the command
+    commands.command2.op2; // access the options of command2
+    ---
+
+    Inner_ProgramCommands:
+
+    You can also pass in sub commands to a `Command` object in the `args` parameter:
+
+    ---
+    auto commands = ProgramCommands!(
+        ProgramOptions!(Options!("opt1", string)),
+        Command!"command1".args!(
+            ProgramCommands!(
+                ProgramOptions!(Options!("opt2", string)),
+                Command!"sub-command1",
+            ),
+        ),
+    )();
+
+    commands.options.opt1; // access the option
+    commands.command1.subCommand1; // access the command
+    commands.command1.options.op2; // access the options of command2
+    ---
+*/
 module dcli.program_commands;
+
+///
+unittest {
+    alias MainCommands = ProgramCommands!(
+        ProgramOptions!(
+            Option!("glob1", string).shortName!"a".description!"desc",
+        ),
+        Command!"cmd1"
+            .args!(
+                ProgramOptions!(
+                    Option!("opt1", string).shortName!"b".description!"desc",
+                ),
+        ),
+        Command!"cmd2"
+            .handler!(Fixtures.handleCommand2)
+            .description!"desc",
+        Command!"cmd3"
+            .args!(
+                ProgramCommands!(
+                    ProgramOptions!(
+                        Option!("opt3", string).shortName!"d".description!"desc",
+                    ),
+                    Command!"sub1"
+                        .args!(
+                            ProgramOptions!(
+                                Option!("opt4", string).shortName!"e".description!"desc",
+                            ),
+                        )
+                        .handler!(Fixtures.handleCommand3)
+                        .description!"desc",
+                ),
+            )
+            .handler!(Fixtures.handleCommand3Sub1)
+            .description!"desc",
+    );
+
+    auto commands = MainCommands();
+
+    commands.parse([
+        "-ayo",
+        "cmd3",
+        "-d",
+        "hi",
+        "sub1",
+        "-e",
+        "boo",
+    ]);
+
+    assert(cast(bool)commands.cmd1 == false);
+    assert(cast(bool)commands.cmd2 == false);
+    assert(cast(bool)commands.cmd3 == true);
+
+    assert(commands.options.glob1 == "yo");
+    assert(commands.cmd3.options.opt3 == "hi");
+    assert(commands.cmd3.sub1.opt4 == "boo");
+
+    assert(commands.helpText ==
+`Options:
+  -a  --glob1   desc
+Commands:
+  cmd1
+  cmd2  desc
+  cmd3  desc`
+  );
+
+    commands.executeHandlers;
+
+    assert(!Fixtures.checkResetHandledCommand2);
+    assert( Fixtures.checkResetHandledCommand3);
+    assert( Fixtures.checkResetHandledCommand3Sub1);
+}
 
 import dcli.program_options;
 import ddash.lang: Void, isVoid;
@@ -88,10 +239,10 @@ private struct CommandImpl(
     The following named optional arguments are available:
 
     <li>`description`: `string` - description for help message
-    <li>`args`: `ProgramOptions`|`ProgramCommands` - this can be given a set of program options that can be used with this command,
-        or it can be given a program commands object so that it has sub commands
+    <li>`args`: $(DDOX_NAMED_REF dcli.program_options, `ProgramOptions`)|`ProgramCommands` - this can be given a set of program
+        options that can be used with this command, or it can be given a program commands object so that it has sub commands
     <li>`handler`: `void function(T)` - this is a handler function that will only be called if this command was present on the
-        command line.
+        command line. The type `T` passed in will be your `ProgramCommands` structure instance
 */
 public template Command(string name) {
     alias Command = CommandImpl!name;
@@ -106,8 +257,8 @@ private void parse(Void, const string[]) {}
 private string toString(Void) { return ""; }
 
 /**
-    You can configure a `ProgramCommands` object with a number of `Commands`s and then use it to parse
-    and array of command line arguments
+    You can configure a `ProgramCommands` object with a number of `Command`s and then use it to parse
+    an list of command line arguments
 
     The object will generate its member variables from the `Command`s you pass in, for e.g.
 
@@ -125,6 +276,9 @@ private string toString(Void) { return ""; }
     if (commands.one) {} // will be false
     if (commands.two) {} // will be true
     ---
+
+    You can also assign "handler" to a command and use the `executeHandlers` function to call them for the
+    commands that were activated.
 
     Params:
         Commands = 1 or more `Command` objects, each representing one command line argument. The first
@@ -291,7 +445,7 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
         static foreach (I; StartIndex .. Commands.length) {
             if (mixin(Commands[I].Name)) { // if this command is active
                 static if (!isNullType!(Commands[I].Handler)) {
-                    Commands[I].Handler(mixin(Commands[I].Name));
+                    Commands[I].Handler(this);
                 }
                 static if (isProgramCommands!(Commands[I].Args)) {
                     mixin(Commands[I].Name ~ ".executeHandlers();");
@@ -337,74 +491,4 @@ version (unittest) {
             handledCommand3Sub1 = true;
         }
     }
-}
-
-unittest {
-    alias MainCommands = ProgramCommands!(
-        ProgramOptions!(
-            Option!("glob1", string).shortName!"a".description!"desc",
-        ),
-        Command!"cmd1"
-            .args!(
-                ProgramOptions!(
-                    Option!("opt1", string).shortName!"b".description!"desc",
-                ),
-        ),
-        Command!"cmd2"
-            .handler!(Fixtures.handleCommand2)
-            .description!"desc",
-        Command!"cmd3"
-            .args!(
-                ProgramCommands!(
-                    ProgramOptions!(
-                        Option!("opt3", string).shortName!"d".description!"desc",
-                    ),
-                    Command!"sub1"
-                        .args!(
-                            ProgramOptions!(
-                                Option!("opt4", string).shortName!"e".description!"desc",
-                            ),
-                        )
-                        .handler!(Fixtures.handleCommand3)
-                        .description!"desc",
-                ),
-            )
-            .handler!(Fixtures.handleCommand3Sub1)
-            .description!"desc",
-    );
-
-    auto commands = MainCommands();
-
-    commands.parse([
-        "-ayo",
-        "cmd3",
-        "-d",
-        "hi",
-        "sub1",
-        "-e",
-        "boo",
-    ]);
-
-    assert(cast(bool)commands.cmd1 == false);
-    assert(cast(bool)commands.cmd2 == false);
-    assert(cast(bool)commands.cmd3 == true);
-
-    assert(commands.options.glob1 == "yo");
-    assert(commands.cmd3.options.opt3 == "hi");
-    assert(commands.cmd3.sub1.opt4 == "boo");
-
-    assert(commands.helpText ==
-`Options:
-  -a  --glob1   desc
-Commands:
-  cmd1
-  cmd2  desc
-  cmd3  desc`
-  );
-
-    commands.executeHandlers;
-
-    assert(!Fixtures.checkResetHandledCommand2);
-    assert( Fixtures.checkResetHandledCommand3);
-    assert( Fixtures.checkResetHandledCommand3Sub1);
 }
