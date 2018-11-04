@@ -11,7 +11,7 @@ Full API docs available [here](https://aliak00.github.io/dcli/)
 * [ProgramOptions](#ProgramOptions)
 * [ProgramCommands](#ProgramCommands)
 
-### ProgramOptions
+### ProgramOptions ([docs](https://aliak00.github.io/dcli/dcli/program_options.html))
 
 Handles program options which are arguments passed with a leading `-` or `--` and followed by a value
 
@@ -24,16 +24,29 @@ Handles program options which are arguments passed with a leading `-` or `--` an
 * Supports custom types that have a constructor that is called with a string
 * You can supply custom types and they will be called with a string that you can parse
 
-#### Enhancements over `std.getopt`:
 
-* `getopt(args)` is destructive on args.
-* You cannot create your getopts and the parse later, which in combination with try/catch leads to awkward code
-* `getopt` doesn't accept `$ ./program -p 3`. For short opts, you have to do `$ ./program -p3`.
-* `getopt` doesn't allow case-sensitive short name and a case-insensitive long name
-* `getopt` will initialize an array type with the default values AND what the program arg was.
-* You cannot assign values to bundled short args, they are only incrementable
-* There is no way to handle what happens with duplicate arguments
-
-### ProgramCommands
+### ProgramCommands ([docs](https://aliak00.github.io/dcli/dcli/program_commands.html))
 
 Provides a command handling and definitino framework. Allos you define a set of commands that can be accepted on the command line, and also invokes any given handlers for activated commands. Also integrated with `ProgramOptions`.
+
+#### E.g.
+
+```
+// install.d
+void commandHandler(T)(T commands) {
+    writeln(commands.install); // prints true
+}
+// main.d
+static import install, build;
+void main(string[] args) {
+    auto commands = ProgramCommands!(
+        Command!"build".handler!(build.commandHandler)
+        Command!"install".handler!(install.commandHandler)
+    )();
+    commands.parse(args);
+    commands.executeHandlers();
+}
+// Run it
+$ ./program install
+$ >> true
+```
