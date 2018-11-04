@@ -40,3 +40,20 @@ unittest {
     static assert(makeValidCamelCase!"9a" == "a");
     static assert(makeValidCamelCase!"_9a" == "_9a");
 }
+
+// version = dcli_debug;
+
+package(dcli) void debug_print(Args...)(Args args, int line = __LINE__, string file = __FILE__) @nogc {
+    version(dcli_debug) {
+        debug {
+            import std.stdio: writeln;
+            import std.path: baseName, stripExtension, dirName, pathSplitter;
+            import std.range: array;
+            auto stripped = baseName(stripExtension(file));
+            if (stripped == "package") {
+                stripped = pathSplitter(dirName(file)).array[$ - 1] ~ "/" ~ stripped;
+            }
+            writeln("[", stripped, ":", line, "] : ", args);
+        }
+    }
+}

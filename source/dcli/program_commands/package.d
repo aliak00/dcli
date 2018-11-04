@@ -155,23 +155,7 @@ Commands:
 }
 
 import ddash.lang: Void, isVoid;
-
-// version = dcli_programcommands_debug;
-
-private void debug_print(Args...)(Args args, int line = __LINE__, string file = __FILE__) @trusted @nogc {
-    version(dcli_programcommands_debug) {
-        debug {
-            import std.stdio: writeln;
-            import std.path: baseName, stripExtension, dirName, pathSplitter;
-            import std.range: array;
-            auto stripped = baseName(stripExtension(file));
-            if (stripped == "package") {
-                stripped = pathSplitter(dirName(file)).array[$ - 1] ~ "/" ~ stripped;
-            }
-            writeln("[", stripped, ":", line, "] : ", args);
-        }
-    }
-}
+import dcli.common: debug_print;
 
 private template isCommand(T) {
     import std.traits: isInstanceOf;
