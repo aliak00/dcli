@@ -277,8 +277,9 @@ private template OptionImpl(
     import bolts: isUnaryOver;
     import ddash.range: frontOr;
     import std.array: split;
+    import dcli.common: makeValidCamelCase;
 
-    alias VarName = _varName;
+    alias VarName = makeValidCamelCase!_varName;
     alias Type = T;
     alias LongName = _longName;
     alias ShortName = _shortName;
@@ -696,18 +697,19 @@ struct ProgramOptions(Options...) if (Options.length > 0) {
         import ddash.range: first, last, frontOr, withFront;
         import ddash.algorithm: flatMap;
         import std.file: thisExePath;
+        import std.path: baseName;
+
+        // int index = args.first.map!baseName.filter!(a => a == baseName(thisExePath)).map!"1".orElse(0);
+        // int index = args.first.map!(a => baseName(a) == baseName(thisExePath) ? 1 : 0).orElse(0);
 
         int index = 0;
-
-        args.first.map!(a => a.split("/").last).withFront!((a) {
-            import std.file: thisExePath;
-            thisExePath.split("/").last.withFront!((b) {
-                if (a == b) {
-                    index = 1;
-                }
-            });
+        args.first.withFront!((a) {
+            if (baseName(thisExePath) == baseName(a)) {
+                index = 1;
+            }
         });
 
+        string[] unusedArgs;
         while (index < args.length) {
             auto arg = args[index];
             debug_print("parsing arg ", arg);
@@ -726,6 +728,7 @@ struct ProgramOptions(Options...) if (Options.length > 0) {
                     );
                 }).array;
                 index++;
+                unusedArgs ~= arg;
                 continue;
             }
 
@@ -880,7 +883,7 @@ struct ProgramOptions(Options...) if (Options.length > 0) {
             index += steps;
         }
 
-        return [];
+        return unusedArgs;
     }
 
     /**
@@ -1046,4 +1049,14 @@ unittest {
         Option!("opt", string).shortName!"o"
     )();
     assertThrown!MissingProgramArgument(opts.parse(["-o"]));
+}
+
+unittest {
+    import std.stdio: writeln;
+    auto opts = ProgramOptions!(
+        Option!("opt1", string),
+        Option!("opt2", string),
+    )();
+    auto ret = opts.parse(["--opt1=hello", "--opt2=world", "extra", "args"]);
+    assert(ret == ["extra", "args"]);
 }
