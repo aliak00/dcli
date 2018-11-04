@@ -83,6 +83,8 @@ module dcli.program_commands;
 
 ///
 unittest {
+    import dcli.program_options;
+
     alias MainCommands = ProgramCommands!(
         ProgramOptions!(
             Option!("glob1", string).shortName!"a".description!"desc",
@@ -152,15 +154,7 @@ Commands:
     assert( Fixtures.checkResetHandledCommand3Sub1);
 }
 
-import dcli.program_options;
 import ddash.lang: Void, isVoid;
-import optional;
-import ddash.algorithm: indexWhere;
-import ddash.range: frontOr;
-
-import std.algorithm: map;
-import std.typecons;
-import std.stdio: writeln;
 
 // version = dcli_programcommands_debug;
 
@@ -236,6 +230,8 @@ private struct CommandImpl(
     _Args = Void,
     alias _handler = null,
 ) {
+
+    import dcli.program_options: isProgramOptions;
 
     alias Name = _name;
     alias Identifier = makeValidCamelCase!Name;
@@ -339,6 +335,11 @@ private string toString(Void) { return ""; }
 */
 public struct ProgramCommands(Commands...) if (Commands.length > 0) {
     import std.conv: to;
+    import std.typecons: Tuple;
+    import std.algorithm: map;
+    import dcli.program_options: isProgramOptions;
+    import ddash.algorithm: indexWhere;
+    import ddash.range: frontOr;
 
     static if (isProgramOptions!(Commands[0])) {
         // We have a global set of options if the first argument is a ProgramOptions type.
@@ -549,4 +550,9 @@ unittest {
     auto commands = ProgramCommands!(Command!"dashed-command")();
     commands.parse(["dashed-command"]);
     assert(cast(bool)commands.dashedCommand);
+}
+
+unittest {
+    import std.stdio: writeln;
+    writeln("hi");
 }

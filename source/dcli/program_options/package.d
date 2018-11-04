@@ -275,8 +275,8 @@ private template OptionImpl(
 
     import std.typecons: Flag;
     import bolts: isUnaryOver;
-    import std.traits: ReturnType;
     import ddash.range: frontOr;
+    import std.array: split;
 
     alias VarName = _varName;
     alias Type = T;
@@ -302,7 +302,6 @@ private template OptionImpl(
         );
     }
 
-    import std.array: split;
     private immutable NormalizedName = (LongName ~ "|" ~ ShortName ~ "|" ~ VarName).split("|").frontOr("");
     private immutable PrimaryLongName = LongName.split("|").frontOr("");
     private immutable PrimaryShortName = ShortName.split("|").frontOr("");
@@ -391,7 +390,6 @@ private template OptionImpl(
 
     private bool isMatch(string name, Flag!"shortName" isShortName) {
         import std.uni: toLower;
-        import std.array: split;
         import std.algorithm: any;
         if (isShortName) {
             static if (CaseSensitiveShortName) {
@@ -689,6 +687,9 @@ struct ProgramOptions(Options...) if (Options.length > 0) {
         // Initialize the encounters array
         static foreach (opt; Options) {
             encounteredOptions[opt.VarName] = false;
+        }
+        scope(exit) {
+            encounteredOptions.clear;
         }
 
         // Parse the first arg and executable path and see if we should skip first arg
