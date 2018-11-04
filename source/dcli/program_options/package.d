@@ -461,7 +461,7 @@ package(dcli) template isProgramOptions(T) {
     an `Option`.
 
     Params:
-        Options = 1 or more `Option` objects, each representing one command line argument
+        _Options = 1 or more `Option` objects, each representing one command line argument
 */
 struct ProgramOptions(_Options...) {
 
