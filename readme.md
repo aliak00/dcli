@@ -22,7 +22,6 @@ Handles program options which are arguments passed with a leading `-` or `--` an
 * Supports environment variables
 * Supports default values
 * Supports custom types that have a constructor that is called with a string
-* You can supply custom types and they will be called with a string that you can parse
 
 
 ### ProgramCommands ([docs](https://aliak00.github.io/dcli/dcli/program_commands.html))

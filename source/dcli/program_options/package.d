@@ -8,7 +8,6 @@
     <li> Supports environment variables
     <li> Supports default values
     <li> Supports custom types that have a constructor that is called with a string
-    <li> You can supply custom types and they will be called with a string that you can parse
 
     Enhancements_over_std.getopt:
 
@@ -205,9 +204,15 @@ enum OptionDuplicatePolicy {
     Represents one program options. One of more of these can be given to
     a `ProgramOptions` object as template arguments.
 
+    If the option name is not a valid identifier, it is transformed in to camel case by the following rules:
+    <ol>
+        <li> if first character is invalid first character for identifier, it is skipped.
+        <li> if any following character is not a valid identifier character, it is skipped AND the next valid character
+        is capitalized.
+    </ol>
+
     Params:
-        varName = The name of the variable that will hold the value of the option.
-            This value represents the default long name of the program option.
+        name = The name of the options
         T = The type of this variable
 
     Named_optional_arguments:
@@ -223,11 +228,11 @@ enum OptionDuplicatePolicy {
 
     The following named optional arguments are available:
 
-    <li>`shortName`: `string` - the short name for the option
-    <li>`longName`: `string` - the long name of the option if different from the variable name
+    <li>`shortName`: `string` - the short name for the option, multiple short names can be specified like `a|b|c`.
+    <li>`longName`: `string` - If you want multiple long names, or you want to set the longName to nil.
     <li>`defaultValue`: `T` - the default value if not supplied
     <li>`description`: `string` - description for help message
-    <li>`environmentVar`: `string` - the name of the envrionemtn var that can set this option if present
+    <li>`environmentVar`: `string` - the name of the environment var that can set this option if present
     <li>`caseSensitiveLongName`: `bool` - true if long name is case sensitive
     <li>`caseSensitiveShortName`: `bool` - true if short name is case sensitive
     <li>`incremental`: `bool` - true if this option represents an incremental value
@@ -237,8 +242,8 @@ enum OptionDuplicatePolicy {
     <li>`bundleable`: `bool` - true if this short option can be bundled with other short options
     <li>`duplicatePolicy`: `OptionDuplicatePolicy` - what to do when the option is encoutered for a second time
 */
-template Option(string varName, T) {
-    alias Option = OptionImpl!(varName, T);
+template Option(string name, T) {
+    alias Option = OptionImpl!(name, T);
 }
 
 private template OptionImpl(
