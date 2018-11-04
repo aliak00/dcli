@@ -158,6 +158,7 @@ unittest {
 
     assert(options.helpText ==
 `Options:
+  -h  --help          Displays this help message
   -a  --opt1          This is the description for option 1
   -b  --opt2          This is the description for option 2
   -B  --opt3          There are three kinds of comments:
@@ -457,14 +458,20 @@ package(dcli) template isProgramOptions(T) {
     Params:
         Options = 1 or more `Option` objects, each representing one command line argument
 */
-struct ProgramOptions(Options...) if (Options.length > 0) {
+struct ProgramOptions(_Options...) {
 
     import std.typecons: Flag, Tuple, tuple, Yes, No;
     import optional;
+    import std.meta: AliasSeq;
+
+    alias HelpOption = Option!("help", bool).shortName!"h".description!"Displays this help message";
+    alias Options = AliasSeq!(HelpOption, _Options);
 
     static foreach (I, opt; Options) {
         mixin("opt.Type " ~ opt.VarName ~ "= opt.DefaultValue;");
     }
+
+
 
     private bool[string] encounteredOptions;
 
@@ -1042,5 +1049,5 @@ unittest {
         Option!("opt2", string),
     )();
     opts.parse(["--opt1=hello", "--opt2=world", "extra", "args"]);
-    assert(opts.toString == "{ opt1: hello, opt2: world }");
+    assert(opts.toString == "{ help: false, opt1: hello, opt2: world }");
 }

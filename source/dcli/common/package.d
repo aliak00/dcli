@@ -43,7 +43,7 @@ unittest {
 
 // version = dcli_debug;
 
-package(dcli) void debug_print(Args...)(Args args, int line = __LINE__, string file = __FILE__) @nogc {
+package(dcli) void debug_print(Args...)(auto ref Args args, int line = __LINE__, string file = __FILE__) @nogc {
     version(dcli_debug) {
         debug {
             import std.stdio: writeln;

@@ -140,6 +140,7 @@ unittest {
 
     assert(commands.helpText ==
 `Options:
+  -h  --help    Displays this help message
   -a  --glob1   desc
 Commands:
   cmd1
@@ -169,8 +170,8 @@ private template isProgramCommands(T) {
 
 private struct CommandImpl(
     string _name,
+    _Args,
     string _description = null,
-    _Args = Void,
     alias _handler = null,
 ) {
 
@@ -183,14 +184,14 @@ private struct CommandImpl(
     alias Args = _Args;
     alias Handler = _handler;
 
-    public alias description(string value) = CommandImpl!(Name, value, Args, Handler);
+    public alias description(string value) = CommandImpl!(Name, Args, value, Handler);
 
     public static template args(U) if (isProgramOptions!U || isProgramCommands!U) {
-        alias args = CommandImpl!(Name, Description, U, Handler);
+        alias args = CommandImpl!(Name, U, Description, Handler);
     }
 
     public static template handler(alias value) {
-        alias handler = CommandImpl!(Name, Description, Args, value);
+        alias handler = CommandImpl!(Name, Args, Description, value);
     }
 
     private bool active = false;
@@ -237,7 +238,8 @@ private struct CommandImpl(
         command line. The type `T` passed in will be your `ProgramCommands` structure instance
 */
 public template Command(string name) if (name.length > 0) {
-    alias Command = CommandImpl!name;
+    import dcli.program_options: ProgramOptions;
+    alias Command = CommandImpl!(name, ProgramOptions!());
 }
 
 /*
@@ -277,26 +279,29 @@ private string toString(Void) { return ""; }
             argument may be a `ProgramOptions` type if you want the command to have a set of options
             that it may handle
 */
-public struct ProgramCommands(Commands...) if (Commands.length > 0) {
+public struct ProgramCommands(_Commands...) if (_Commands.length > 0) {
     import std.conv: to;
     import std.typecons: Tuple;
     import std.algorithm: map;
-    import dcli.program_options: isProgramOptions;
+    import dcli.program_options: isProgramOptions, ProgramOptions;
     import ddash.algorithm: indexWhere;
     import ddash.range: frontOr;
 
-    static if (isProgramOptions!(Commands[0])) {
-        // We have a global set of options if the first argument is a ProgramOptions type.
-        enum StartIndex = 1;
-        /**
-            The `ProgramOptions` that are associated with this command if any was passed in. If no `ProgramOptions`
-            where passed as an argument then this aliases to a `Void` pseudo type.
-        */
-        public Commands[0] options;
+    import std.meta: AliasSeq;
+    static if (!isProgramOptions!(_Commands[0])) {
+        alias Commands = AliasSeq!(ProgramOptions!(), _Commands);
     } else {
-        enum StartIndex = 0;
-        public Void options;
+        alias Commands = _Commands;
     }
+
+    // We have a global set of options if the first argument is a ProgramOptions type.
+    enum StartIndex = 1;
+
+    /**
+        The `ProgramOptions` that are associated with this command if any was passed in. If no `ProgramOptions`
+        where passed as an argument then this aliases to a `Void` pseudo type.
+    */
+    public Commands[0] options;
 
     // Mixin the variables for each command
     static foreach (I; StartIndex .. Commands.length) {
@@ -414,21 +419,25 @@ public struct ProgramCommands(Commands...) if (Commands.length > 0) {
         static if (isProgramOptions!(Commands[0])) {
             ret ~= "options: " ~ this.options.toString ~ ", ";
         }
-        static foreach (I; StartIndex .. Commands.length) {
+        static foreach (I; StartIndex .. Commands.length) {{
             ret ~= Commands[I].Name ~ ": { ";
             ret ~= "active: " ~ mixin(Commands[I].Identifier ~ ".active ? \"true\" : \"false\"");
-            ret ~= ", ";
+
+            string label;
             static if (isProgramOptions!(Commands[I].Args)) {
-                ret ~= "options";
-            } else {
-                ret ~= "commands";
+                label = "options: ";
+            } else static if (isProgramCommands!(Commands[I].Args)) {
+                label = "commands: ";
             }
-            ret ~= ": " ~ mixin(Commands[I].Identifier ~ ".toString");
+            if (label.length) {
+                ret ~= ", " ~ label ~ mixin(Commands[I].Identifier ~ ".toString");
+            }
+
             ret ~= " }";
             static if (I < Commands.length - 1) {
                 ret ~= ", ";
             }
-        }
+        }}
         ret ~= " }";
         return ret;
     }
@@ -516,8 +525,8 @@ unittest {
     commands.parse(["--opt-1=boo", "command-2", "--opt-2", "7"]);
 
     string obj
-        = "{ options: { opt1: boo, opt2: 0 }, "
-        ~ "command-1: { active: false, commands:  }, "
-        ~ "command-2: { active: true, options: { opt1: , opt2: 7 } } }";
+        = "{ options: { help: false, opt1: boo, opt2: 0 }, "
+        ~ "command-1: { active: false, options: { help: false } }, "
+        ~ "command-2: { active: true, options: { help: false, opt1: , opt2: 7 } } }";
     assert(commands.toString == obj);
 }
