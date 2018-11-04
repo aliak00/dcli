@@ -32,25 +32,25 @@ unittest {
     auto args = [
         thisExePath,            // Program name should be ignored
         "program_name",         // Unknown argument, there's a handler for stray arguments
-        "--opt1", "value1",     // "--arg value" format
+        "--opt-1", "value1",    // "--arg value" format
         "-b", "1",              // "-a 1" format, case sensitive short name by default
-        "--Opt3=2",             // "--arg=value" format, case insesitive long name by default
-        // "--opt4",            // Set by an envaronment variable
-        "--OPT5", "4",          // first value of an int array
-        "--opt5", "5",          // second value of an int array
-        // "--opt6",            // Not set, will be give default value of int array
-        "--opt7", "9",          // Also an array
+        "--Opt-3=2",            // "--arg=value" format, case insesitive long name by default
+        // "--opt-4",           // Set by an envaronment variable
+        "--OPT-5", "4",         // first value of an int array
+        "--opt-5", "5",         // second value of an int array
+        // "--opt-6",           // Not set, will be give default value of int array
+        "--opt-7", "9",         // Also an array
         "--unknown", "ha",      // Unknown option and value
-        "--opt8=two",           // An enum vaue
-        "-i", "-j", "--incremental", "--opt9", // Option aliasing
-        "--opt10", "11",        // A validated, must be greater than 10
-        "--opt11", "3,4,5",     // Array format "--arg=v0,v1,v2"
-        "--opt12", "1=2::3=4::5=6", // Associative array with custom seperator (Default is ",")
-        "--opt13", "verbose",   // A custom parsed value - opt13 is an int
+        "--opt-8=two",          // An enum vaue
+        "-i", "-j", "--incremental", "--opt-9", // Option aliasing
+        "--opt-10", "11",       // A validated, must be greater than 10
+        "--opt-11", "3,4,5",    // Array format "--arg=v0,v1,v2"
+        "--opt-12", "1=2::3=4::5=6", // Associative array with custom seperator (Default is ",")
+        "--opt-13", "verbose",  // A custom parsed value - opt13 is an int
         "-xyz=-7",              // Setting multiple, bundleable options at once
-        "--opt1", "value2",     // Uses duplication policy to be ignored
-        "--opt14", "1,2",       // Parses to a Custom type
-        "--opt15",              // Boolean, no value
+        "--opt-1", "value2",    // Uses duplication policy to be ignored
+        "--opt-14", "1,2",      // Parses to a Custom type
+        "--opt-15",             // Boolean, no value
         "--",                   // Args after this are ignored
         "extra",
     ];
@@ -73,43 +73,43 @@ unittest {
     }
 
     auto options = ProgramOptions!(
-        Option!("opt1", string)
+        Option!("opt-1", string)
             .shortName!"a"
             .description!"This is the description for option 1"
             .duplicatePolicy!(OptionDuplicatePolicy.firstOneWins),
-        Option!("opt2", int)
+        Option!("opt-2", int)
             .shortName!"b"
             .description!"This is the description for option 2",
-        Option!("opt3", int)
+        Option!("opt-3", int)
             .shortName!"B"
             .description!(
 `There are three kinds of comments:
     1. Something rather sinister
     2. And something else that's not so sinister`
         ),
-        Option!("opt4", int)
+        Option!("opt-4", int)
             .defaultValue!3
             .environmentVar!"OPT_4"
             .description!"THis is one that takes an env var",
-        Option!("opt5", int[])
+        Option!("opt-5", int[])
             .environmentVar!"OPT_5"
             .description!"THis is one that takes an env var as well",
-        Option!("opt6", int[])
+        Option!("opt-6", int[])
             .defaultValue!([6, 7, 8]),
-        Option!("opt7", float[])
+        Option!("opt-7", float[])
             .defaultValue!([1, 2]),
-        Option!("opt8", Enum),
-        Option!("opt9", int)
+        Option!("opt-8", Enum),
+        Option!("opt-9", int)
             .shortName!"i|j"
-            .longName!"incremental|opt9"
+            .longName!"incremental|opt-9"
             .incremental!true
             .description!"sets some level incremental thingy",
-        Option!("opt10", int)
+        Option!("opt-10", int)
             .validator!(a => a > 10),
-        Option!("opt11", int[]),
-        Option!("opt12", int[int])
+        Option!("opt-11", int[]),
+        Option!("opt-12", int[int])
             .separator!"::",
-        Option!("opt13", int)
+        Option!("opt-13", int)
             .parser!((value) {
                 if (value == "verbose") return 7;
                 return -1;
@@ -120,9 +120,9 @@ unittest {
             .shortName!"y",
         Option!("b2", int)
             .shortName!"z",
-        Option!("opt14", Custom),
-        Option!("opt15", bool),
-        Option!("opt16", bool)
+        Option!("opt-14", Custom),
+        Option!("opt-15", bool),
+        Option!("opt-16", bool)
             .longName!""
             .environmentVar!"OPT_16"
             .description!"THis one only takes and envornment variable and cant be set with any flags",
@@ -159,30 +159,30 @@ unittest {
     assert(options.helpText ==
 `Options:
   -h  --help          Displays this help message
-  -a  --opt1          This is the description for option 1
-  -b  --opt2          This is the description for option 2
-  -B  --opt3          There are three kinds of comments:
+  -a  --opt-1         This is the description for option 1
+  -b  --opt-2         This is the description for option 2
+  -B  --opt-3         There are three kinds of comments:
                           1. Something rather sinister
                           2. And something else that's not so sinister
-      --opt4          THis is one that takes an env var
-      --opt5          THis is one that takes an env var as well
-      --opt6
-      --opt7
-      --opt8
+      --opt-4         THis is one that takes an env var
+      --opt-5         THis is one that takes an env var as well
+      --opt-6
+      --opt-7
+      --opt-8
   -i  --incremental   sets some level incremental thingy
-      --opt10
-      --opt11
-      --opt12
-      --opt13
+      --opt-10
+      --opt-11
+      --opt-12
+      --opt-13
   -x  --b0
   -y  --b1
   -z  --b2
-      --opt14
-      --opt15
+      --opt-14
+      --opt-15
 
 Environment Vars:
-  OPT_4    See: --opt4
-  OPT_5    See: --opt5
+  OPT_4    See: --opt-4
+  OPT_5    See: --opt-5
   OPT_16   THis one only takes and envornment variable and cant be set with any flags`
   );
 }

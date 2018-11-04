@@ -39,6 +39,7 @@ unittest {
     static assert(makeValidCamelCase!"-a-" == "a");
     static assert(makeValidCamelCase!"9a" == "a");
     static assert(makeValidCamelCase!"_9a" == "_9a");
+    static assert(makeValidCamelCase!"a-1" == "a1");
 }
 
 // version = dcli_debug;
