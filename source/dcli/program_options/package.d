@@ -694,20 +694,11 @@ struct ProgramOptions(Options...) if (Options.length > 0) {
         }
 
         // Parse the first arg and executable path and see if we should skip first arg
-        import ddash.range: first, last, frontOr, withFront;
-        import ddash.algorithm: flatMap;
+        import ddash.range: first, frontOr;
         import std.file: thisExePath;
         import std.path: baseName;
 
-        // int index = args.first.map!baseName.filter!(a => a == baseName(thisExePath)).map!"1".orElse(0);
-        // int index = args.first.map!(a => baseName(a) == baseName(thisExePath) ? 1 : 0).orElse(0);
-
-        int index = 0;
-        args.first.withFront!((a) {
-            if (baseName(thisExePath) == baseName(a)) {
-                index = 1;
-            }
-        });
+        int index = args.first.map!baseName.frontOr("") == baseName(thisExePath) ? 1 : 0;
 
         string[] unusedArgs;
         while (index < args.length) {
@@ -1052,11 +1043,19 @@ unittest {
 }
 
 unittest {
-    import std.stdio: writeln;
     auto opts = ProgramOptions!(
         Option!("opt1", string),
         Option!("opt2", string),
     )();
-    auto ret = opts.parse(["--opt1=hello", "--opt2=world", "extra", "args"]);
+    const ret = opts.parse(["--opt1=hello", "--opt2=world", "extra", "args"]);
     assert(ret == ["extra", "args"]);
+}
+
+unittest {
+    auto opts = ProgramOptions!(
+        Option!("opt1", string),
+        Option!("opt2", string),
+    )();
+    opts.parse(["--opt1=hello", "--opt2=world", "extra", "args"]);
+    assert(opts.toString == "{ opt1: hello, opt2: world }");
 }

@@ -513,10 +513,27 @@ unittest {
 }
 
 unittest {
-    // import dcli.program_options;
-    // auto commands = ProgramCommands!(
-    //     ProgramOptions!(
-    //         Option!("opt-1")
-    //     )
-    // )
+    import dcli.program_options;
+    auto commands = ProgramCommands!(
+        ProgramOptions!(
+            Option!("opt1", string).longName!"opt-1",
+            Option!("opt2", int).longName!"opt-2",
+        ),
+        Command!"command-1",
+        Command!"command-2"
+            .args!(
+                ProgramOptions!(
+                    Option!("opt1", string).longName!"opt-1",
+                    Option!("opt2", int).longName!"opt-2",
+                ),
+            ),
+    )();
+
+    commands.parse(["--opt-1=boo", "command-2", "--opt-2", "7"]);
+
+    string obj
+        = "{ options: { opt1: boo, opt2: 0 }, "
+        ~ "command-1: { active: false, commands:  }, "
+        ~ "command-2: { active: true, options: { opt1: , opt2: 7 } } }";
+    assert(commands.toString == obj);
 }
