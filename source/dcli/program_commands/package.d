@@ -275,7 +275,7 @@ private string toString(Void) { return ""; }
     commands that were activated.
 
     Params:
-        Commands = 1 or more `Command` objects, each representing one command line argument. The first
+        _Commands = 1 or more `Command` objects, each representing one command line argument. The first
             argument may be a `ProgramOptions` type if you want the command to have a set of options
             that it may handle
 */
