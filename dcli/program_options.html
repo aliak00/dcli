@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<title>Module dcli.program_options</title>
+		<link rel="stylesheet" type="text/css" href="../styles/ddox.css"/>
+		<link rel="stylesheet" href="../prettify/prettify.css" type="text/css"/>
+		<script type="text/javascript" src="../scripts/jquery.js">/**/</script><script type="text/javascript" src="../scripts/ddox.js">/**/</script>
+	</head>
+	<body onload="setupDdox();">
+		<nav id="main-nav">
+			<noscript>
+				<p style="color: red">The search functionality needs JavaScript enabled</p>
+			</noscript>
+			<div id="symbolSearchPane" style="display: none">
+				<form action="#" method="GET">
+					<input id="symbolSearch" type="text" name="q" placeholder="Search for symbols" autocomplete="off" onchange="performSymbolSearch(40);" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"/>
+				</form>
+				<ul id="symbolSearchResults" class="symbolList" style="display: none"></ul><script type="application/javascript" src="../symbols.js"></script><script type="application/javascript">var symbolSearchRootDir = "../";
+$('#symbolSearchPane').show();</script>
+			</div>
+			<ul class="tree-view">
+				<li class="tree-view ">
+					<div class="package ">dcli
+					</div>
+			<ul class="tree-view">
+				<li>
+					<div class="module ">
+						<a href="../dcli/program_commands.html">program_commands</a>
+					</div>
+				</li>
+				<li>
+					<div class="module selected">
+						<a href="../dcli/program_options.html">program_options</a>
+					</div>
+				</li>
+			</ul>
+				</li>
+			</ul>
+		</nav>
+		<div id="main-contents">
+			<h1>Module dcli.program_options</h1><p>Handles program options which are arguments passed with a leading <code class="lang-d"><span class="pun">-</span></code> or <code class="lang-d"><span class="pun">--</span></code> and followed by a value
+</p><section></section>
+
+			<section><section><h2>Features</h2>
+<p><li> Input validation
+    <li> Customize seperators for associative array args
+    <li> Supports environment variables
+    <li> Supports default values
+    <li> Supports custom types that have a constructor that is called with a string
+</p>
+</section>
+<section><h2>Enhancements over std.getopt</h2>
+<p><li> <code class="lang-d"><span class="pln">getopt</span><span class="pun">(</span><span class="pln">args</span><span class="pun">)</span></code> is destructive on args.
+    <li> You cannot create your getopts and the parse later, which in combination with try/catch leads to awkward code
+    <li> <code class="lang-d"><span class="pln">getopt</span></code> doesn't accept <code class="lang-d"><span class="pun">$ <wbr/>./</span><span class="pln">program </span><span class="pun">-</span><span class="pln">p </span><span class="lit">3</span></code>. For short opts, you have to do <code class="lang-d"><span class="pun">$ <wbr/>./</span><span class="pln">program </span><span class="pun">-</span><span class="pln">p3</span></code>.
+    <li> <code class="lang-d"><span class="pln">getopt</span></code> doesn't allow case-sensitive short name and a case-insensitive long name
+    <li> <code class="lang-d"><span class="pln">getopt</span></code> will initialize an array type with the default values AND what the program arg was.
+    <li> You cannot assign values to bundled short args, they are only incrementable
+    <li> There is no way to handle what happens with duplicate arguments
+</p>
+</section>
+<section><h2>Example</h2>
+
+<pre class="code"><code class="lang-d"><span class="kwd">import </span><span class="pln">std<wbr/></span><span class="pun">.</span><span class="pln">file</span><span class="pun">: </span><span class="pln">thisExePath</span><span class="pun">;
+</span><span class="kwd">import </span><span class="pln">std<wbr/></span><span class="pun">.</span><span class="pln">process</span><span class="pun">: </span><span class="pln">environment</span><span class="pun">;
+
+</span><span class="pln">environment</span><span class="pun">[</span><span class="str">"OPT_4"</span><span class="pun">] = </span><span class="str">"22"</span><span class="pun">;
+
+</span><span class="kwd">auto </span><span class="pln">args </span><span class="pun">= [
+    </span><span class="pln">thisExePath</span><span class="pun">,            </span><span class="com">// Program name should be ignored
+    </span><span class="str">"program_name"</span><span class="pun">,         </span><span class="com">// Unknown argument, there's a handler for stray arguments
+    </span><span class="str">"--opt-1"</span><span class="pun">, </span><span class="str">"value1"</span><span class="pun">,    </span><span class="com">// "--arg value" format
+    </span><span class="str">"-b"</span><span class="pun">, </span><span class="str">"1"</span><span class="pun">,              </span><span class="com">// "-a 1" format, case sensitive short name by default
+    </span><span class="str">"--Opt-3=2"</span><span class="pun">,            </span><span class="com">// "--arg=value" format, case insesitive long name by default
+    // "--opt-4",           // Set by an envaronment variable
+    </span><span class="str">"--OPT-5"</span><span class="pun">, </span><span class="str">"4"</span><span class="pun">,         </span><span class="com">// first value of an int array
+    </span><span class="str">"--opt-5"</span><span class="pun">, </span><span class="str">"5"</span><span class="pun">,         </span><span class="com">// second value of an int array
+    // "--opt-6",           // Not set, will be give default value of int array
+    </span><span class="str">"--opt-7"</span><span class="pun">, </span><span class="str">"9"</span><span class="pun">,         </span><span class="com">// Also an array
+    </span><span class="str">"--unknown"</span><span class="pun">, </span><span class="str">"ha"</span><span class="pun">,      </span><span class="com">// Unknown option and value
+    </span><span class="str">"--opt-8=two"</span><span class="pun">,          </span><span class="com">// An enum vaue
+    </span><span class="str">"-i"</span><span class="pun">, </span><span class="str">"-j"</span><span class="pun">, </span><span class="str">"--incremental"</span><span class="pun">, </span><span class="str">"--opt-9"</span><span class="pun">, </span><span class="com">// Option aliasing
+    </span><span class="str">"--opt-10"</span><span class="pun">, </span><span class="str">"11"</span><span class="pun">,       </span><span class="com">// A validated, must be greater than 10
+    </span><span class="str">"--opt-11"</span><span class="pun">, </span><span class="str">"3,4,5"</span><span class="pun">,    </span><span class="com">// Array format "--arg=v0,v1,v2"
+    </span><span class="str">"--opt-12"</span><span class="pun">, </span><span class="str">"1=2::3=4::5=6"</span><span class="pun">, </span><span class="com">// Associative array with custom seperator (Default is ",")
+    </span><span class="str">"--opt-13"</span><span class="pun">, </span><span class="str">"verbose"</span><span class="pun">,  </span><span class="com">// A custom parsed value - opt13 is an int
+    </span><span class="str">"-xyz=-7"</span><span class="pun">,              </span><span class="com">// Setting multiple, bundleable options at once
+    </span><span class="str">"--opt-1"</span><span class="pun">, </span><span class="str">"value2"</span><span class="pun">,    </span><span class="com">// Uses duplication policy to be ignored
+    </span><span class="str">"--opt-14"</span><span class="pun">, </span><span class="str">"1,2"</span><span class="pun">,      </span><span class="com">// Parses to a Custom type
+    </span><span class="str">"--opt-15"</span><span class="pun">,             </span><span class="com">// Boolean, no value
+    </span><span class="str">"--"</span><span class="pun">,                   </span><span class="com">// Args after this are ignored
+    </span><span class="str">"extra"</span><span class="pun">,
+];
+
+</span><span class="kwd">enum </span><span class="typ">Enum </span><span class="pun">{ </span><span class="pln">one</span><span class="pun">, </span><span class="pln">two</span><span class="pun">, }
+</span><span class="kwd">static struct </span><span class="typ">Custom </span><span class="pun">{
+    </span><span class="typ">int </span><span class="pln">x</span><span class="pun">;
+    </span><span class="typ">int </span><span class="pln">y</span><span class="pun">;
+    </span><span class="kwd">this</span><span class="pun">(</span><span class="typ">int </span><span class="pln">a</span><span class="pun">, </span><span class="typ">int </span><span class="pln">b</span><span class="pun">) {
+        </span><span class="pln">x </span><span class="pun">= </span><span class="pln">a</span><span class="pun">;
+        </span><span class="pln">y </span><span class="pun">= </span><span class="pln">b</span><span class="pun">;
+    }
+    </span><span class="kwd">this</span><span class="pun">(</span><span class="typ">string </span><span class="pln">str</span><span class="pun">) {
+        </span><span class="kwd">import </span><span class="pln">std<wbr/></span><span class="pun">.</span><span class="typ">string</span><span class="pun">: </span><span class="pln">split</span><span class="pun">;
+        </span><span class="kwd">import </span><span class="pln">std<wbr/></span><span class="pun">.</span><span class="pln">conv</span><span class="pun">: </span><span class="pln">to</span><span class="pun">;
+        </span><span class="kwd">auto </span><span class="pln">parts </span><span class="pun">= </span><span class="pln">str<wbr/></span><span class="pun">.</span><span class="pln">split</span><span class="pun">(</span><span class="str">","</span><span class="pun">);
+        </span><span class="pln">x </span><span class="pun">= </span><span class="pln">parts</span><span class="pun">[</span><span class="lit">0</span><span class="pun">]<wbr/>.</span><span class="pln">to</span><span class="pun">!</span><span class="typ">int</span><span class="pun">;
+        </span><span class="pln">y </span><span class="pun">= </span><span class="pln">parts</span><span class="pun">[</span><span class="lit">1</span><span class="pun">]<wbr/>.</span><span class="pln">to</span><span class="pun">!</span><span class="typ">int</span><span class="pun">;
+    }
+}
+
+</span><span class="kwd">auto </span><span class="pln">options </span><span class="pun">= <a href="../dcli/program_options/ProgramOptions.html"></span><span class="typ">ProgramOptions</span></a><span class="pun">!(
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-1"</span><span class="pun">, </span><span class="typ">string</span><span class="pun">)
+        <wbr/>.</span><span class="pln">shortName</span><span class="pun">!</span><span class="str">"a"
+        <wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"This is the description for option 1"
+        <wbr/></span><span class="pun">.</span><span class="pln">duplicatePolicy</span><span class="pun">!(<a href="../dcli/program_options/OptionDuplicatePolicy.html#firstOneWins"></span><span class="typ">OptionDuplicatePolicy<wbr/></span><span class="pun">.</span><span class="pln">firstOneWins</span></a><span class="pun">),
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-2"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">)
+        <wbr/>.</span><span class="pln">shortName</span><span class="pun">!</span><span class="str">"b"
+        <wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"This is the description for option 2"</span><span class="pun">,
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-3"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">)
+        <wbr/>.</span><span class="pln">shortName</span><span class="pun">!</span><span class="str">"B"
+        <wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!(
+</span><span class="str">`There are three kinds of comments:
+1. Something rather sinister
+2. And something else that's not so sinister`
+    </span><span class="pun">),
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-4"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">)
+        <wbr/>.</span><span class="pln">defaultValue</span><span class="pun">!</span><span class="lit">3
+        <wbr/></span><span class="pun">.</span><span class="pln">environmentVar</span><span class="pun">!</span><span class="str">"OPT_4"
+        <wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"THis is one that takes an env var"</span><span class="pun">,
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-5"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">[])
+        <wbr/>.</span><span class="pln">environmentVar</span><span class="pun">!</span><span class="str">"OPT_5"
+        <wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"THis is one that takes an env var as well"</span><span class="pun">,
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-6"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">[])
+        <wbr/>.</span><span class="pln">defaultValue</span><span class="pun">!([</span><span class="lit">6</span><span class="pun">, </span><span class="lit">7</span><span class="pun">, </span><span class="lit">8</span><span class="pun">]),
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-7"</span><span class="pun">, </span><span class="typ">float</span><span class="pun">[])
+        <wbr/>.</span><span class="pln">defaultValue</span><span class="pun">!([</span><span class="lit">1</span><span class="pun">, </span><span class="lit">2</span><span class="pun">]),
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-8"</span><span class="pun">, </span><span class="typ">Enum</span><span class="pun">),
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-9"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">)
+        <wbr/>.</span><span class="pln">shortName</span><span class="pun">!</span><span class="str">"i|j"
+        <wbr/></span><span class="pun">.</span><span class="pln">longName</span><span class="pun">!</span><span class="str">"incremental|opt-9"
+        <wbr/></span><span class="pun">.</span><span class="pln">incremental</span><span class="pun">!</span><span class="kwd">true
+        <wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"sets some level incremental thingy"</span><span class="pun">,
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-10"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">)
+        <wbr/>.</span><span class="pln">validator</span><span class="pun">!(</span><span class="pln">a </span><span class="pun">=&gt; </span><span class="pln">a </span><span class="pun">&gt; </span><span class="lit">10</span><span class="pun">),
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-11"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">[]),
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-12"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">[</span><span class="typ">int</span><span class="pun">])
+        <wbr/>.</span><span class="pln">separator</span><span class="pun">!</span><span class="str">"::"</span><span class="pun">,
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-13"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">)
+        <wbr/>.</span><span class="pln">parser</span><span class="pun">!((</span><span class="pln">value</span><span class="pun">) {
+            </span><span class="kwd">if </span><span class="pun">(</span><span class="pln">value </span><span class="pun">== </span><span class="str">"verbose"</span><span class="pun">) </span><span class="kwd">return </span><span class="lit">7</span><span class="pun">;
+            </span><span class="kwd">return </span><span class="pun">-</span><span class="lit">1</span><span class="pun">;
+        }),
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"b0"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">)
+        <wbr/>.</span><span class="pln">shortName</span><span class="pun">!</span><span class="str">"x"</span><span class="pun">,
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"b1"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">)
+        <wbr/>.</span><span class="pln">shortName</span><span class="pun">!</span><span class="str">"y"</span><span class="pun">,
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"b2"</span><span class="pun">, </span><span class="typ">int</span><span class="pun">)
+        <wbr/>.</span><span class="pln">shortName</span><span class="pun">!</span><span class="str">"z"</span><span class="pun">,
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-14"</span><span class="pun">, </span><span class="typ">Custom</span><span class="pun">),
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-15"</span><span class="pun">, </span><span class="typ">bool</span><span class="pun">),
+    <a href="../dcli/program_options/Option.html"></span><span class="typ">Option</span></a><span class="pun">!(</span><span class="str">"opt-16"</span><span class="pun">, </span><span class="typ">bool</span><span class="pun">)
+        <wbr/>.</span><span class="pln">longName</span><span class="pun">!</span><span class="str">""
+        <wbr/></span><span class="pun">.</span><span class="pln">environmentVar</span><span class="pun">!</span><span class="str">"OPT_16"
+        <wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"THis one only takes and envornment variable and cant be set with any flags"</span><span class="pun">,
+)();
+
+</span><span class="typ">string</span><span class="pun">[] </span><span class="pln">unknownArgs</span><span class="pun">;
+</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">unknownArgHandler </span><span class="pun">= (</span><span class="typ">string </span><span class="pln">name</span><span class="pun">) {
+    </span><span class="pln">unknownArgs </span><span class="pun">~= </span><span class="pln">name</span><span class="pun">;
+    </span><span class="kwd">return false</span><span class="pun">;
+};
+
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">parse</span><span class="pun">(</span><span class="pln">args</span><span class="pun">) == [</span><span class="str">"extra"</span><span class="pun">]);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">unknownArgs </span><span class="pun">== [</span><span class="str">"program_name"</span><span class="pun">, </span><span class="str">"--unknown"</span><span class="pun">, </span><span class="str">"ha"</span><span class="pun">]);
+
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt1 </span><span class="pun">== </span><span class="str">"value1"</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt2 </span><span class="pun">== </span><span class="lit">1</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt3 </span><span class="pun">== </span><span class="lit">2</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt4 </span><span class="pun">== </span><span class="lit">22</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt5 </span><span class="pun">== [</span><span class="lit">4</span><span class="pun">, </span><span class="lit">5</span><span class="pun">]);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt6 </span><span class="pun">== [</span><span class="lit">6</span><span class="pun">, </span><span class="lit">7</span><span class="pun">, </span><span class="lit">8</span><span class="pun">]);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt7 </span><span class="pun">== [</span><span class="lit">9</span><span class="pun">]);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt8 </span><span class="pun">== </span><span class="typ">Enum<wbr/></span><span class="pun">.</span><span class="pln">two</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt9 </span><span class="pun">== </span><span class="lit">4</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt10 </span><span class="pun">&gt; </span><span class="lit">10</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt11 </span><span class="pun">== [</span><span class="lit">3</span><span class="pun">, </span><span class="lit">4</span><span class="pun">, </span><span class="lit">5</span><span class="pun">]);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt12 </span><span class="pun">== [</span><span class="lit">1</span><span class="pun">: </span><span class="lit">2</span><span class="pun">, </span><span class="lit">3</span><span class="pun">: </span><span class="lit">4</span><span class="pun">, </span><span class="lit">5</span><span class="pun">: </span><span class="lit">6</span><span class="pun">]);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt13 </span><span class="pun">== </span><span class="lit">7</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">b0 </span><span class="pun">== -</span><span class="lit">7</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">b1 </span><span class="pun">== -</span><span class="lit">7</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">b2 </span><span class="pun">== -</span><span class="lit">7</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt14 </span><span class="pun">== </span><span class="typ">Custom</span><span class="pun">(</span><span class="lit">1</span><span class="pun">, </span><span class="lit">2</span><span class="pun">));
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt15 </span><span class="pun">== </span><span class="kwd">true</span><span class="pun">);
+
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">helpText </span><span class="pun">==
+</span><span class="str">`Options:
+-h  --help          Displays this help message
+-a  --opt-1         This is the description for option 1
+-b  --opt-2         This is the description for option 2
+-B  --opt-3         There are three kinds of comments:
+                      1. Something rather sinister
+                      2. And something else that's not so sinister
+  --opt-4         THis is one that takes an env var
+  --opt-5         THis is one that takes an env var as well
+  --opt-6
+  --opt-7
+  --opt-8
+-i  --incremental   sets some level incremental thingy
+  --opt-10
+  --opt-11
+  --opt-12
+  --opt-13
+-x  --b0
+-y  --b1
+-z  --b2
+  --opt-14
+  --opt-15
+
+Environment Vars:
+OPT_4    See: --opt-4
+OPT_5    See: --opt-5
+OPT_16   THis one only takes and envornment variable and cant be set with any flags`
+</span><span class="pun">);
+</span></code></pre>
+</section>
+</section>
+			<section>
+				<h2>Classes</h2>
+				<table>
+					<col class="caption"/>
+					<tr>
+						<th>Name</th><th>Description</th>
+					</tr>
+					<tr>
+						<td>
+							<code>
+								<a id="DuplicateProgramArgument" class="public" href="../dcli/program_options/DuplicateProgramArgument.html">DuplicateProgramArgument</a>
+							</code>
+						</td>
+						<td>Occurs if there's a duplicate argument
+</td>
+					</tr>
+					<tr>
+						<td>
+							<code>
+								<a id="InvalidProgramArgument" class="public" href="../dcli/program_options/InvalidProgramArgument.html">InvalidProgramArgument</a>
+							</code>
+						</td>
+						<td>Occurs when an argument does not validate
+</td>
+					</tr>
+					<tr>
+						<td>
+							<code>
+								<a id="MalformedProgramArgument" class="public" href="../dcli/program_options/MalformedProgramArgument.html">MalformedProgramArgument</a>
+							</code>
+						</td>
+						<td>Occurs when an argument is incorrectly formatted
+</td>
+					</tr>
+					<tr>
+						<td>
+							<code>
+								<a id="MissingProgramArgument" class="public" href="../dcli/program_options/MissingProgramArgument.html">MissingProgramArgument</a>
+							</code>
+						</td>
+						<td>Occurs when a program argument is missing
+</td>
+					</tr>
+					<tr>
+						<td>
+							<code>
+								<a id="ProgramOptionException" class="public" href="../dcli/program_options/ProgramOptionException.html">ProgramOptionException</a>
+							</code>
+						</td>
+						<td>Thrown when an error occurs in parsing
+</td>
+					</tr>
+				</table>
+			</section>
+			<section>
+				<h2>Structs</h2>
+				<table>
+					<col class="caption"/>
+					<tr>
+						<th>Name</th><th>Description</th>
+					</tr>
+					<tr>
+						<td>
+							<code>
+								<a id="ProgramOptions" class="public" href="../dcli/program_options/ProgramOptions.html">ProgramOptions</a>
+							</code>
+						</td>
+						<td>You can configure a <code class="lang-d"><span class="typ">ProgramOptions</span></code> object with a number of <code class="lang-d"><a href="../dcli/program_options/Option.html"><span class="typ">Option</span></a></code>s and then use it to parse
+    and array of command line arguments.
+</td>
+					</tr>
+				</table>
+			</section>
+			<section>
+				<h2>Enums</h2>
+				<table>
+					<col class="caption"/>
+					<tr>
+						<th>Name</th><th>Description</th>
+					</tr>
+					<tr>
+						<td>
+							<code>
+								<a id="OptionDuplicatePolicy" class="public" href="../dcli/program_options/OptionDuplicatePolicy.html">OptionDuplicatePolicy</a>
+							</code>
+						</td>
+						<td>The duplication policy can be passed to a <code class="lang-d"><a href="../dcli/program_options/ProgramOptions.html"><span class="typ">ProgramOptions</span></a></code> <code class="lang-d"><span class="typ">Option<wbr/></span><span class="pun">.</span><span class="pln">duplicatePolicy</span></code>
+</td>
+					</tr>
+				</table>
+			</section>
+			<section>
+				<h2>Aliases</h2>
+				<table>
+					<col class="caption"/>
+					<tr>
+						<th>Name</th><th>Type</th><th>Description</th>
+					</tr>
+					<tr>
+						<td>
+							<a id="Option" class="public" href="../dcli/program_options/Option.html">
+								<code>Option</code>
+							</a>
+						</td>
+						<td>
+							<code class="prettyprint lang-d"><span class="typ">OptionImpl</span>!(name,T)</code>
+						</td>
+						<td>Represents one program options. One of more of these can be given to
+    a <code class="lang-d"><a href="../dcli/program_options/ProgramOptions.html"><span class="typ">ProgramOptions</span></a></code> object as template arguments.
+</td>
+					</tr>
+				</table>
+			</section>
+			<footer>
+				<table class="license-info">
+					<tr>
+						<th>Authors</th>
+						<td>
+							
+						</td>
+					</tr>
+					<tr>
+						<th>Copyright</th>
+						<td>
+							
+						</td>
+					</tr>
+					<tr>
+						<th>License</th>
+						<td>
+							
+						</td>
+					</tr>
+				</table>
+				<p class="faint">Generated using the DDOX documentation generator</p>
+			</footer>
+		</div>
+	</body>
+</html>

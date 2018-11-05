@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<title>Struct ProgramCommands</title>
+		<link rel="stylesheet" type="text/css" href="../../styles/ddox.css"/>
+		<link rel="stylesheet" href="../../prettify/prettify.css" type="text/css"/>
+		<script type="text/javascript" src="../../scripts/jquery.js">/**/</script><script type="text/javascript" src="../../scripts/ddox.js">/**/</script>
+	</head>
+	<body onload="setupDdox();">
+		<nav id="main-nav">
+			<noscript>
+				<p style="color: red">The search functionality needs JavaScript enabled</p>
+			</noscript>
+			<div id="symbolSearchPane" style="display: none">
+				<form action="#" method="GET">
+					<input id="symbolSearch" type="text" name="q" placeholder="Search for symbols" autocomplete="off" onchange="performSymbolSearch(40);" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"/>
+				</form>
+				<ul id="symbolSearchResults" class="symbolList" style="display: none"></ul><script type="application/javascript" src="../../symbols.js"></script><script type="application/javascript">var symbolSearchRootDir = "../../";
+$('#symbolSearchPane').show();</script>
+			</div>
+			<ul class="tree-view">
+				<li class="tree-view ">
+					<div class="package ">dcli
+					</div>
+			<ul class="tree-view">
+				<li>
+					<div class="module selected">
+						<a href="../../dcli/program_commands.html">program_commands</a>
+					</div>
+				</li>
+				<li>
+					<div class="module ">
+						<a href="../../dcli/program_options.html">program_options</a>
+					</div>
+				</li>
+			</ul>
+				</li>
+			</ul>
+		</nav>
+		<div id="main-contents">
+			<h1>Struct ProgramCommands</h1><p>You can configure a <code class="lang-d"><span class="typ">ProgramCommands</span></code> object with a number of <code class="lang-d"><a href="../../dcli/program_commands/Command.html"><span class="typ">Command</span></a></code>s and then use it to parse
+    an list of command line arguments
+</p>
+			<div class="prototype">
+				<code class="lang-d">
+					<div class="single-prototype">
+			<span class="kwd">struct</span> <span class="typ">ProgramCommands</span>(_Commands...)
+			<br/>
+			&nbsp;&nbsp;
+			<br/>
+			<span class="kwd">if</span> <span class="pun">(</span><span class="pln">_Commands<wbr/></span><span class="pun">.</span><span class="pln">length </span><span class="pun">&gt; </span><span class="lit">0</span><span class="pun">);</span>
+					</div>
+				</code>
+			</div>
+			<section><p>The object will generate its member variables from the <code class="lang-d"><a href="../../dcli/program_commands/Command.html"><span class="typ">Command</span></a></code>s you pass in, for e.g.
+</p>
+
+<pre class="code"><code class="lang-d"><span class="kwd">auto </span><span class="pln">commands </span><span class="pun">= </span><span class="typ">ProgramCommands</span><span class="pun">!(<a href="../../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"one"</span><span class="pun">, <a href="../../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"two"</span><span class="pun">);
+</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">one </span><span class="com">// generated variable
+</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">two </span><span class="com">// generated variable</span></code></pre>
+
+<p>    After you parse command line arguments, the commands that are encountered on the command line become
+    "activated" and can be checked by casting them to a boolean, i.e.
+</p>
+
+<pre class="code"><code class="lang-d"><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">parse</span><span class="pun">([</span><span class="str">"two"</span><span class="pun">]);
+</span><span class="kwd">if </span><span class="pun">(</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">one</span><span class="pun">) {} </span><span class="com">// will be false
+</span><span class="kwd">if </span><span class="pun">(</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">two</span><span class="pun">) {} </span><span class="com">// will be true</span></code></pre>
+
+<p>    You can also assign "handler" to a command and use the <code class="lang-d"><a href="../../dcli/program_commands/ProgramCommands.executeHandlers.html"><span class="pln">executeHandlers</span></a></code> function to call them for the
+    commands that were activated.
+</p>
+</section>
+
+			<section><h2>Fields</h2>
+				<table>
+					<col class="caption"/>
+					<tr>
+						<th>Name</th><th>Type</th><th>Description</th>
+					</tr>
+					<tr>
+						<td>
+							<a href="../../dcli/program_commands/ProgramCommands.options.html" class="public"><code>options</code></a>
+						</td>
+						<td class="typecol"><code class="prettyprint lang-d"><span class="typ">Commands</span><span class="pun">[</span><span class="lit">0</span><span class="pun">]</span></code></td><td>The <code class="lang-d"><span class="typ">ProgramOptions</span></code> that are associated with this command if any was passed in. If no <code class="lang-d"><span class="typ">ProgramOptions</span></code>
+        where passed as an argument then this aliases to a <code class="lang-d"><span class="typ">Void</span></code> pseudo type.
+</td>
+					</tr>
+				</table>
+			</section>
+			<section><h2>Methods</h2>
+				<table>
+					<col class="caption"/>
+					<tr>
+						<th>Name</th><th>Description</th>
+					</tr>
+					<tr>
+						<td>
+							<a href="../../dcli/program_commands/ProgramCommands.executeHandlers.html" class="public">
+								<code>executeHandlers</code>
+							</a>
+						</td>
+						<td>If any of the <code class="lang-d"><a href="../../dcli/program_commands/Command.html"><span class="typ">Command</span></a></code>s have any handlers specified. Then those will be called
+        in order of appearance on the command line by calling this function
+</td>
+					</tr>
+					<tr>
+						<td>
+							<a href="../../dcli/program_commands/ProgramCommands.helpText.html" class="public">
+								<code>helpText</code>
+							</a>
+						</td>
+						<td>Returns a string that represents a block of text that can be output to stdout
+        to display a help message
+</td>
+					</tr>
+					<tr>
+						<td>
+							<a href="../../dcli/program_commands/ProgramCommands.parse.html" class="public">
+								<code>parse</code>
+							</a>
+						</td>
+						<td>Parses the command line arguments according to the set of <code class="lang-d"><span class="typ">Commands</span></code>s that are passed in.
+</td>
+					</tr>
+					<tr>
+						<td>
+							<a href="../../dcli/program_commands/ProgramCommands.toString.html" class="public">
+								<code>toString</code>
+							</a>
+						</td>
+						<td>Returns a string that is a stringified object of keys and values denoting commands
+        and their values and options (if present)
+</td>
+					</tr>
+				</table>
+			</section>
+			<section><h2>Parameters</h2>
+<table><col class="caption"><tr><th>Name</th><th>Description</th></tr>
+<tr><td id="_Commands">_Commands</td><td> 1 or more <code class="lang-d"><a href="../../dcli/program_commands/Command.html"><span class="typ">Command</span></a></code> objects, each representing one command line argument. The first
+            argument may be a <code class="lang-d"><span class="typ">ProgramOptions</span></code> type if you want the command to have a set of options
+            that it may handle</td></tr>
+</table>
+</section>
+
+			<footer>
+				<table class="license-info">
+					<tr>
+						<th>Authors</th>
+						<td>
+							
+						</td>
+					</tr>
+					<tr>
+						<th>Copyright</th>
+						<td>
+							
+						</td>
+					</tr>
+					<tr>
+						<th>License</th>
+						<td>
+							
+						</td>
+					</tr>
+				</table>
+				<p class="faint">Generated using the DDOX documentation generator</p>
+			</footer>
+		</div>
+	</body>
+</html>

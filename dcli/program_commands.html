@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<title>Module dcli.program_commands</title>
+		<link rel="stylesheet" type="text/css" href="../styles/ddox.css"/>
+		<link rel="stylesheet" href="../prettify/prettify.css" type="text/css"/>
+		<script type="text/javascript" src="../scripts/jquery.js">/**/</script><script type="text/javascript" src="../scripts/ddox.js">/**/</script>
+	</head>
+	<body onload="setupDdox();">
+		<nav id="main-nav">
+			<noscript>
+				<p style="color: red">The search functionality needs JavaScript enabled</p>
+			</noscript>
+			<div id="symbolSearchPane" style="display: none">
+				<form action="#" method="GET">
+					<input id="symbolSearch" type="text" name="q" placeholder="Search for symbols" autocomplete="off" onchange="performSymbolSearch(40);" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"/>
+				</form>
+				<ul id="symbolSearchResults" class="symbolList" style="display: none"></ul><script type="application/javascript" src="../symbols.js"></script><script type="application/javascript">var symbolSearchRootDir = "../";
+$('#symbolSearchPane').show();</script>
+			</div>
+			<ul class="tree-view">
+				<li class="tree-view ">
+					<div class="package ">dcli
+					</div>
+			<ul class="tree-view">
+				<li>
+					<div class="module selected">
+						<a href="../dcli/program_commands.html">program_commands</a>
+					</div>
+				</li>
+				<li>
+					<div class="module ">
+						<a href="../dcli/program_options.html">program_options</a>
+					</div>
+				</li>
+			</ul>
+				</li>
+			</ul>
+		</nav>
+		<div id="main-contents">
+			<h1>Module dcli.program_commands</h1><p>Handles program commands, which are arguments passed to a program that are not prefixed with <code class="lang-d"><span class="pun">-</span></code> or <code class="lang-d"><span class="pun">--</span></code>. So that
+    you handle programs that can be executed in this format:
+</p><section><pre class="code"><code class="lang-d"><span class="pun">$ <wbr/>./</span><span class="pln">program </span><span class="pun">-</span><span class="pln">v </span><span class="pun">--</span><span class="pln">global</span><span class="pun">-</span><span class="pln">option</span><span class="pun">=</span><span class="lit">7 </span><span class="pln">command1 </span><span class="pun">--</span><span class="pln">parameter</span><span class="pun">=</span><span class="str">"yo" </span><span class="pln">sub</span><span class="pun">-</span><span class="pln">command </span><span class="pun">--</span><span class="pln">another</span><span class="pun">-</span><span class="pln">parameter</span><span class="pun">=</span><span class="lit">42</span></code></pre>
+</section>
+
+			<section><section><h2>Usage</h2>
+<p>The basic idea is to create a <code class="lang-d"><a href="../dcli/program_commands/ProgramCommands.html"><span class="typ">ProgramCommands</span></a></code> structure and then define a number of <code class="lang-d"><a href="../dcli/program_commands/Command.html"><span class="typ">Command</span></a></code>s that it can handle and
+    optionally, a set of <a href="../dcli/program_options.html" title="dcli.program_options"><code class="lang-d"><span class="typ">ProgramOptions</span></code></a> that it can handle. Each <code class="lang-d"><a href="../dcli/program_commands/Command.html"><span class="typ">Command</span></a></code> can in
+    turn have it's own <code class="lang-d"><a href="../dcli/program_commands/ProgramCommands.html"><span class="typ">ProgramCommands</span></a></code>.
+</p>
+</section>
+<section><h2>Handlers</h2>
+<p>Handlers are provided to be able to eacily handle when a command is encountered. This will allow you to structure your
+    program with a module based architecture, where each "handler" can e.g. pass the commands to a module that is build
+    specifically for handling that command.
+</p>
+
+<p>    E.g.:
+</p>
+<pre class="code"><code class="lang-d"><span class="com">// install.d
+</span><span class="typ">void </span><span class="pln">commandHandler</span><span class="pun">(</span><span class="pln">T</span><span class="pun">)(</span><span class="pln">T commands</span><span class="pun">) {
+    </span><span class="pln">writeln</span><span class="pun">(</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">install</span><span class="pun">); </span><span class="com">// prints true
+</span><span class="pun">}
+</span><span class="com">// main.d
+</span><span class="kwd">static import </span><span class="pln">install</span><span class="pun">, </span><span class="pln">build</span><span class="pun">;
+</span><span class="typ">void </span><span class="pln">main</span><span class="pun">(</span><span class="typ">string</span><span class="pun">[] </span><span class="pln">args</span><span class="pun">) {
+    </span><span class="kwd">auto </span><span class="pln">commands </span><span class="pun">= <a href="../dcli/program_commands/ProgramCommands.html"></span><span class="typ">ProgramCommands</span></a><span class="pun">!(
+        <a href="../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"build"<wbr/></span><span class="pun">.</span><span class="pln">handler</span><span class="pun">!(</span><span class="pln">build<wbr/></span><span class="pun">.</span><span class="pln">commandHandler</span><span class="pun">)
+        <a href="../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"install"<wbr/></span><span class="pun">.</span><span class="pln">handler</span><span class="pun">!(</span><span class="pln">install<wbr/></span><span class="pun">.</span><span class="pln">commandHandler</span><span class="pun">)
+    )();
+    </span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">parse</span><span class="pun">(</span><span class="pln">args</span><span class="pun">);
+    </span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">executeHandlers</span><span class="pun">();
+}
+</span><span class="com">// Run it
+</span><span class="pun">$ <wbr/>./</span><span class="pln">program install
+</span><span class="pun">$ &gt;&gt; </span><span class="kwd">true</span></code></pre>
+</section>
+<section><h2>Inner ProgramOptions</h2>
+<p>The first argument to a <code class="lang-d"><a href="../dcli/program_commands/ProgramCommands.html"><span class="typ">ProgramCommands</span></a></code> object can optionally be a <a href="../dcli/program_options.html" title="dcli.program_options"><code class="lang-d"><span class="typ">ProgramOptions</span></code></a>
+    object. In this case, the program options are accessible with an internal variable named <code class="lang-d"><span class="pln">options</span></code>
+</p>
+
+<p>    E.g.:
+</p>
+<pre class="code"><code class="lang-d"><span class="kwd">auto </span><span class="pln">commands </span><span class="pun">= <a href="../dcli/program_commands/ProgramCommands.html"></span><span class="typ">ProgramCommands</span></a><span class="pun">!(
+    </span><span class="typ">ProgramOptions</span><span class="pun">!(</span><span class="typ">Options</span><span class="pun">!(</span><span class="str">"opt1"</span><span class="pun">, </span><span class="typ">string</span><span class="pun">)),
+    <a href="../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"command1"</span><span class="pun">,
+    <a href="../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"command2"<wbr/></span><span class="pun">.</span><span class="pln">args</span><span class="pun">!(
+        </span><span class="typ">ProgramOptions</span><span class="pun">!(</span><span class="typ">Options</span><span class="pun">!(</span><span class="str">"opt2"</span><span class="pun">, </span><span class="typ">string</span><span class="pun">))
+    )
+)();
+
+</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt1</span><span class="pun">; </span><span class="com">// access the option
+</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">command1</span><span class="pun">; </span><span class="com">// access the command
+</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">command2<wbr/></span><span class="pun">.</span><span class="pln">op2</span><span class="pun">; </span><span class="com">// access the options of command2</span></code></pre>
+</section>
+<section><h2>Inner ProgramCommands</h2>
+<p>You can also pass in sub commands to a <code class="lang-d"><a href="../dcli/program_commands/Command.html"><span class="typ">Command</span></a></code> object in the <code class="lang-d"><span class="pln">args</span></code> parameter:
+</p>
+
+<pre class="code"><code class="lang-d"><span class="kwd">auto </span><span class="pln">commands </span><span class="pun">= <a href="../dcli/program_commands/ProgramCommands.html"></span><span class="typ">ProgramCommands</span></a><span class="pun">!(
+    </span><span class="typ">ProgramOptions</span><span class="pun">!(</span><span class="typ">Options</span><span class="pun">!(</span><span class="str">"opt1"</span><span class="pun">, </span><span class="typ">string</span><span class="pun">)),
+    <a href="../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"command1"<wbr/></span><span class="pun">.</span><span class="pln">args</span><span class="pun">!(
+        <a href="../dcli/program_commands/ProgramCommands.html"></span><span class="typ">ProgramCommands</span></a><span class="pun">!(
+            </span><span class="typ">ProgramOptions</span><span class="pun">!(</span><span class="typ">Options</span><span class="pun">!(</span><span class="str">"opt2"</span><span class="pun">, </span><span class="typ">string</span><span class="pun">)),
+            <a href="../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"sub-command1"</span><span class="pun">,
+        ),
+    ),
+)();
+
+</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt1</span><span class="pun">; </span><span class="com">// access the option
+</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">command1<wbr/></span><span class="pun">.</span><span class="pln">subCommand1</span><span class="pun">; </span><span class="com">// access the command
+</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">command1<wbr/></span><span class="pun">.</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">op2</span><span class="pun">; </span><span class="com">// access the options of command2</span></code></pre>
+</section>
+<section><h2>Example</h2>
+
+<pre class="code"><code class="lang-d"><span class="kwd">import <a href="../dcli/program_options.html"></span><span class="pln">dcli<wbr/></span><span class="pun">.</span><span class="pln">program_options</span></a><span class="pun">;
+
+</span><span class="kwd">alias </span><span class="typ">MainCommands </span><span class="pun">= <a href="../dcli/program_commands/ProgramCommands.html"></span><span class="typ">ProgramCommands</span></a><span class="pun">!(
+    </span><span class="typ">ProgramOptions</span><span class="pun">!(
+        </span><span class="typ">Option</span><span class="pun">!(</span><span class="str">"glob1"</span><span class="pun">, </span><span class="typ">string</span><span class="pun">)<wbr/>.</span><span class="pln">shortName</span><span class="pun">!</span><span class="str">"a"<wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"desc"</span><span class="pun">,
+    ),
+    <a href="../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"cmd1"
+        <wbr/></span><span class="pun">.</span><span class="pln">args</span><span class="pun">!(
+            </span><span class="typ">ProgramOptions</span><span class="pun">!(
+                </span><span class="typ">Option</span><span class="pun">!(</span><span class="str">"opt1"</span><span class="pun">, </span><span class="typ">string</span><span class="pun">)<wbr/>.</span><span class="pln">shortName</span><span class="pun">!</span><span class="str">"b"<wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"desc"</span><span class="pun">,
+            ),
+    ),
+    <a href="../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"cmd2"
+        <wbr/></span><span class="pun">.</span><span class="pln">handler</span><span class="pun">!(</span><span class="typ">Fixtures<wbr/></span><span class="pun">.</span><span class="pln">handleCommand2</span><span class="pun">)
+        <wbr/>.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"desc"</span><span class="pun">,
+    <a href="../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"cmd3"
+        <wbr/></span><span class="pun">.</span><span class="pln">args</span><span class="pun">!(
+            <a href="../dcli/program_commands/ProgramCommands.html"></span><span class="typ">ProgramCommands</span></a><span class="pun">!(
+                </span><span class="typ">ProgramOptions</span><span class="pun">!(
+                    </span><span class="typ">Option</span><span class="pun">!(</span><span class="str">"opt3"</span><span class="pun">, </span><span class="typ">string</span><span class="pun">)<wbr/>.</span><span class="pln">shortName</span><span class="pun">!</span><span class="str">"d"<wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"desc"</span><span class="pun">,
+                ),
+                <a href="../dcli/program_commands/Command.html"></span><span class="typ">Command</span></a><span class="pun">!</span><span class="str">"sub1"
+                    <wbr/></span><span class="pun">.</span><span class="pln">args</span><span class="pun">!(
+                        </span><span class="typ">ProgramOptions</span><span class="pun">!(
+                            </span><span class="typ">Option</span><span class="pun">!(</span><span class="str">"opt4"</span><span class="pun">, </span><span class="typ">string</span><span class="pun">)<wbr/>.</span><span class="pln">shortName</span><span class="pun">!</span><span class="str">"e"<wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"desc"</span><span class="pun">,
+                        ),
+                    )
+                    <wbr/>.</span><span class="pln">handler</span><span class="pun">!(</span><span class="typ">Fixtures<wbr/></span><span class="pun">.</span><span class="pln">handleCommand3</span><span class="pun">)
+                    <wbr/>.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"desc"</span><span class="pun">,
+            ),
+        )
+        <wbr/>.</span><span class="pln">handler</span><span class="pun">!(</span><span class="typ">Fixtures<wbr/></span><span class="pun">.</span><span class="pln">handleCommand3Sub1</span><span class="pun">)
+        <wbr/>.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"desc"</span><span class="pun">,
+);
+
+</span><span class="kwd">auto </span><span class="pln">commands </span><span class="pun">= </span><span class="typ">MainCommands</span><span class="pun">();
+
+</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">parse</span><span class="pun">([
+    </span><span class="str">"-ayo"</span><span class="pun">,
+    </span><span class="str">"cmd3"</span><span class="pun">,
+    </span><span class="str">"-d"</span><span class="pun">,
+    </span><span class="str">"hi"</span><span class="pun">,
+    </span><span class="str">"sub1"</span><span class="pun">,
+    </span><span class="str">"-e"</span><span class="pun">,
+    </span><span class="str">"boo"</span><span class="pun">,
+]);
+
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="kwd">cast</span><span class="pun">(</span><span class="typ">bool</span><span class="pun">)</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">cmd1 </span><span class="pun">== </span><span class="kwd">false</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="kwd">cast</span><span class="pun">(</span><span class="typ">bool</span><span class="pun">)</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">cmd2 </span><span class="pun">== </span><span class="kwd">false</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="kwd">cast</span><span class="pun">(</span><span class="typ">bool</span><span class="pun">)</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">cmd3 </span><span class="pun">== </span><span class="kwd">true</span><span class="pun">);
+
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">glob1 </span><span class="pun">== </span><span class="str">"yo"</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">cmd3<wbr/></span><span class="pun">.</span><span class="pln">options<wbr/></span><span class="pun">.</span><span class="pln">opt3 </span><span class="pun">== </span><span class="str">"hi"</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">cmd3<wbr/></span><span class="pun">.</span><span class="pln">sub1<wbr/></span><span class="pun">.</span><span class="pln">opt4 </span><span class="pun">== </span><span class="str">"boo"</span><span class="pun">);
+
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">helpText </span><span class="pun">==
+</span><span class="str">`Options:
+-h  --help    Displays this help message
+-a  --glob1   desc
+Commands:
+cmd1
+cmd2  desc
+cmd3  desc`
+</span><span class="pun">);
+
+</span><span class="pln">commands<wbr/></span><span class="pun">.</span><span class="pln">executeHandlers</span><span class="pun">;
+
+</span><span class="kwd">assert</span><span class="pun">(!</span><span class="typ">Fixtures<wbr/></span><span class="pun">.</span><span class="pln">checkResetHandledCommand2</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">( </span><span class="typ">Fixtures<wbr/></span><span class="pun">.</span><span class="pln">checkResetHandledCommand3</span><span class="pun">);
+</span><span class="kwd">assert</span><span class="pun">( </span><span class="typ">Fixtures<wbr/></span><span class="pun">.</span><span class="pln">checkResetHandledCommand3Sub1</span><span class="pun">);
+</span></code></pre>
+</section>
+</section>
+			<section>
+				<h2>Structs</h2>
+				<table>
+					<col class="caption"/>
+					<tr>
+						<th>Name</th><th>Description</th>
+					</tr>
+					<tr>
+						<td>
+							<code>
+								<a id="ProgramCommands" class="public" href="../dcli/program_commands/ProgramCommands.html">ProgramCommands</a>
+							</code>
+						</td>
+						<td>You can configure a <code class="lang-d"><span class="typ">ProgramCommands</span></code> object with a number of <code class="lang-d"><a href="../dcli/program_commands/Command.html"><span class="typ">Command</span></a></code>s and then use it to parse
+    an list of command line arguments
+</td>
+					</tr>
+				</table>
+			</section>
+			<section>
+				<h2>Aliases</h2>
+				<table>
+					<col class="caption"/>
+					<tr>
+						<th>Name</th><th>Type</th><th>Description</th>
+					</tr>
+					<tr>
+						<td>
+							<a id="Command" class="public" href="../dcli/program_commands/Command.html">
+								<code>Command</code>
+							</a>
+						</td>
+						<td>
+							<code class="prettyprint lang-d"><span class="typ">CommandImpl</span>!(name,ProgramOptions!())</code>
+						</td>
+						<td>Represents one program command which identified the expected string on the command line. One of more of these can be given to
+    a <code class="lang-d"><a href="../dcli/program_commands/ProgramCommands.html"><span class="typ">ProgramCommands</span></a></code> object as template arguments.
+</td>
+					</tr>
+				</table>
+			</section>
+			<footer>
+				<table class="license-info">
+					<tr>
+						<th>Authors</th>
+						<td>
+							
+						</td>
+					</tr>
+					<tr>
+						<th>Copyright</th>
+						<td>
+							
+						</td>
+					</tr>
+					<tr>
+						<th>License</th>
+						<td>
+							
+						</td>
+					</tr>
+				</table>
+				<p class="faint">Generated using the DDOX documentation generator</p>
+			</footer>
+		</div>
+	</body>
+</html>

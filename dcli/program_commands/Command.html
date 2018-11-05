@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<title>Alias Command</title>
+		<link rel="stylesheet" type="text/css" href="../../styles/ddox.css"/>
+		<link rel="stylesheet" href="../../prettify/prettify.css" type="text/css"/>
+		<script type="text/javascript" src="../../scripts/jquery.js">/**/</script><script type="text/javascript" src="../../scripts/ddox.js">/**/</script>
+	</head>
+	<body onload="setupDdox();">
+		<nav id="main-nav">
+			<noscript>
+				<p style="color: red">The search functionality needs JavaScript enabled</p>
+			</noscript>
+			<div id="symbolSearchPane" style="display: none">
+				<form action="#" method="GET">
+					<input id="symbolSearch" type="text" name="q" placeholder="Search for symbols" autocomplete="off" onchange="performSymbolSearch(40);" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"/>
+				</form>
+				<ul id="symbolSearchResults" class="symbolList" style="display: none"></ul><script type="application/javascript" src="../../symbols.js"></script><script type="application/javascript">var symbolSearchRootDir = "../../";
+$('#symbolSearchPane').show();</script>
+			</div>
+			<ul class="tree-view">
+				<li class="tree-view ">
+					<div class="package ">dcli
+					</div>
+			<ul class="tree-view">
+				<li>
+					<div class="module selected">
+						<a href="../../dcli/program_commands.html">program_commands</a>
+					</div>
+				</li>
+				<li>
+					<div class="module ">
+						<a href="../../dcli/program_options.html">program_options</a>
+					</div>
+				</li>
+			</ul>
+				</li>
+			</ul>
+		</nav>
+		<div id="main-contents">
+			<h1>Alias Command</h1><p>Represents one program command which identified the expected string on the command line. One of more of these can be given to
+    a <code class="lang-d"><a href="../../dcli/program_commands/ProgramCommands.html"><span class="typ">ProgramCommands</span></a></code> object as template arguments.
+</p>
+			<div class="prototype">
+				<code class="lang-d">
+					<div class="single-prototype">
+			<span class="kwd">alias</span> <span class="pln">Command</span>(<span class="typ">string</span> name)
+			 <span class="pun">=</span> <span class="typ">CommandImpl</span>!(name,ProgramOptions!())<span class="pun">;</span>
+					</div>
+				</code>
+			</div>
+			<section><p>The <code class="lang-d"><span class="typ">Command</span></code> object is accessible from a <code class="lang-d"><a href="../../dcli/program_commands/ProgramCommands.html"><span class="typ">ProgramCommands</span></a></code> object via the name given to the command.
+</p>
+
+<p>    If the name is not a valid identifier, it is transformed in to camel case by the following rules:
+    <ol>
+        <li> if first character is invalid first character for identifier, it is skipped.
+        <li> if any following character is not a valid identifier character, it is skipped AND the next valid character
+        is capitalized.
+    </ol>
+</p>
+</section>
+
+			<section><h2>Parameters</h2>
+<table><col class="caption"><tr><th>Name</th><th>Description</th></tr>
+<tr><td id="name">name</td><td> The name of the command.</td></tr>
+</table>
+</section>
+<section><h2>Named optional arguments</h2>
+<p>A number of named optional arguments can be given to a <code class="lang-d"><span class="typ">Command</span></code> for e.g.:
+</p>
+<pre class="code"><code class="lang-d"><a href="../../dcli/program_commands/ProgramCommands.html"><span class="typ">ProgramCommands</span></a><span class="pun">!(
+    </span><span class="typ">Command</span><span class="pun">!</span><span class="str">"push"<wbr/></span><span class="pun">.</span><span class="pln">description</span><span class="pun">!</span><span class="str">"This command pushes all your bases belongs to us"
+</span><span class="pun">);</span></code></pre>
+
+<p>    This will create a commands object that can parse a command <code class="lang-d"><span class="pln">push</span></code> on the command line.
+</p>
+
+<p>    The following named optional arguments are available:
+</p>
+
+<p>    <li><code class="lang-d"><span class="pln">description</span></code>: <code class="lang-d"><span class="typ">string</span></code> - description for help message
+    <li><code class="lang-d"><span class="pln">args</span></code>: <a href="../../dcli/program_options.html" title="dcli.program_options"><code class="lang-d"><span class="typ">ProgramOptions</span></code></a>|<code class="lang-d"><a href="../../dcli/program_commands/ProgramCommands.html"><span class="typ">ProgramCommands</span></a></code> - this can be given a set of program
+        options that can be used with this command, or it can be given a program commands object so that it has sub commands
+    <li><code class="lang-d"><span class="pln">handler</span></code>: <code class="lang-d"><span class="typ">void </span><span class="kwd">function</span><span class="pun">(</span><span class="pln">T</span><span class="pun">)</span></code> - this is a handler function that will only be called if this command was present on the
+        command line. The type <code class="lang-d"><span class="pln">T</span></code> passed in will be your <code class="lang-d"><a href="../../dcli/program_commands/ProgramCommands.html"><span class="typ">ProgramCommands</span></a></code> structure instance
+</p>
+</section>
+
+			<footer>
+				<table class="license-info">
+					<tr>
+						<th>Authors</th>
+						<td>
+							
+						</td>
+					</tr>
+					<tr>
+						<th>Copyright</th>
+						<td>
+							
+						</td>
+					</tr>
+					<tr>
+						<th>License</th>
+						<td>
+							
+						</td>
+					</tr>
+				</table>
+				<p class="faint">Generated using the DDOX documentation generator</p>
+			</footer>
+		</div>
+	</body>
+</html>

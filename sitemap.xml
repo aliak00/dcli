@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url><loc>http://127.0.0.1/index.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_commands.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_commands/Command.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_commands/ProgramCommands.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_commands/ProgramCommands.executeHandlers.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_commands/ProgramCommands.helpText.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_commands/ProgramCommands.options.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_commands/ProgramCommands.parse.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_commands/ProgramCommands.toString.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options/DuplicateProgramArgument.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options/InvalidProgramArgument.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options/MalformedProgramArgument.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options/MissingProgramArgument.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options/Option.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options/OptionDuplicatePolicy.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options/ProgramOptionException.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options/ProgramOptions.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options/ProgramOptions.helpText.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options/ProgramOptions.parse.html</loc></url>
+<url><loc>http://127.0.0.1/dcli/program_options/ProgramOptions.toString.html</loc></url>
+</urlset>
